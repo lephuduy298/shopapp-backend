@@ -30,6 +30,7 @@ public class WebSecurityConfig {
 
     private final JwtTokenFilter jwtTokenFilter;
 
+    //this is spring security outh2 resource serve
     @Bean
     public SecurityFilterChain securityFilterChain (HttpSecurity http) throws Exception {
         http
