@@ -30,10 +30,10 @@ public class UserController {
         return ResponseEntity.ok().body("register success");
     }
 
-//    @PostMapping("/login")
-//    public ResponseEntity<?> login (@Valid @RequestBody UserLoginDTO userLoginDTO){
-//        String token = this.userService.login(userLoginDTO.getPhoneNumber(), userLoginDTO.getPassword());
-//        return ResponseEntity.ok().body(token);
-//    }
+    @PostMapping("/login")
+    public ResponseEntity<?> login (@Valid @RequestBody UserLoginDTO userLoginDTO){
+        String token = this.userService.login(userLoginDTO.getPhoneNumber(), userLoginDTO.getPassword());
+        return ResponseEntity.ok().body(token);
+    }
 
 }

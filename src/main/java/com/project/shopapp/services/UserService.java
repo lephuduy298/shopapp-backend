@@ -1,5 +1,6 @@
 package com.project.shopapp.services;
 
+import com.project.shopapp.components.JwtTokenUtil;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.error.DataNotFoundException;
 import com.project.shopapp.error.PermissionDenyException;
@@ -12,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -25,9 +28,9 @@ public class UserService implements IUserService {
 
     private final PasswordEncoder passwordEncoder;
 
-//    private final AuthenticationManager authenticationManager;
+    private final AuthenticationManagerBuilder authenticationManagerBuilder;
 
-//    private final JwtTokenUtil jwtTokenUtil;
+    private final JwtTokenUtil jwtTokenUtil;
 
     @Override
     public User createUser(UserDTO userDTO) throws PermissionDenyException {
@@ -60,25 +63,25 @@ public class UserService implements IUserService {
         return this.userRepository.save(user);
     }
 
-//    @Override
-//    public String login(String phoneNumber, String password) {
-//        //check exists user
-//        User currentUser = this.userRepository.findByPhoneNumber(phoneNumber)
-//                .orElseThrow(() -> new DataNotFoundException("Invalid phone number or password"));
-//
-//        if(currentUser.getFacebookAccountId() == 0 && currentUser.getGoogleAccountId() == 0){
-//            if(!passwordEncoder.matches(password, currentUser.getPassword())){
-//                throw new BadCredentialsException("Invalid phone number or password");
-//            }
-//        }
-//
-//        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-//                phoneNumber, password, currentUser.getAuthorities()
-//        );
-//
-//        authenticationManager.authenticate(authenticationToken);
-//
-////        return jwtTokenUtil.generateToken(currentUser);
-//        return null;
-//    }
+    @Override
+    public String login(String phoneNumber, String password) {
+        //check exists user
+        User currentUser = this.userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new DataNotFoundException("Invalid phone number or password"));
+
+        if(currentUser.getFacebookAccountId() == 0 && currentUser.getGoogleAccountId() == 0){
+            if(!passwordEncoder.matches(password, currentUser.getPassword())){
+                throw new BadCredentialsException("Invalid phone number or password");
+            }
+        }
+
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                phoneNumber, password, currentUser.getAuthorities()
+        );
+
+        Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+
+        return jwtTokenUtil.createToken(authentication);
+//        return "login success";
+    }
 }

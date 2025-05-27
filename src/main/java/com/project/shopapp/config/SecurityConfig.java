@@ -1,15 +1,17 @@
-package com.project.shopapp.securities;
+package com.project.shopapp.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
+
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableMethodSecurity(securedEnabled = true)
@@ -30,10 +32,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(request ->
                         // prettier-ignore
                         request
-                                .requestMatchers(String.format("%s/login", apiPrefix)).permitAll()
+                                .requestMatchers(String.format("%s/users/login", apiPrefix)).permitAll()
                                 .anyRequest().authenticated()
 
                 )
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+                .formLogin(f -> f.disable())
                                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
 
