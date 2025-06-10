@@ -1,14 +1,17 @@
 package com.project.shopapp.services;
 
 import com.project.shopapp.components.JwtTokenUtil;
+import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.error.DataNotFoundException;
 import com.project.shopapp.error.PermissionDenyException;
+import com.project.shopapp.error.PostException;
 import com.project.shopapp.models.Role;
 import com.project.shopapp.models.User;
 import com.project.shopapp.repositories.RoleRepository;
 import com.project.shopapp.repositories.UserRepository;
 import com.project.shopapp.services.iservice.IUserService;
+import com.project.shopapp.utils.MessageKeys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -30,14 +33,16 @@ public class UserService implements IUserService {
 
     private final JwtTokenUtil jwtTokenUtil;
 
+    private final LocalizationUtils localizationUtils;
+
     @Override
     public User createUser(UserDTO userDTO) throws PermissionDenyException {
         if(this.userRepository.existsByPhoneNumber(userDTO.getPhoneNumber())){
-            throw new RuntimeException("Phone number already exist");
+            throw new RuntimeException(localizationUtils.getLocalizedMessage(MessageKeys.PHONE_ALREADY_EXISTED, userDTO.getPhoneNumber()));
         }
-        Role role = this.roleRepository.findById(userDTO.getRoleId()).orElseThrow(() -> new RuntimeException("Role not found"));
+        Role role = this.roleRepository.findById(userDTO.getRoleId()).orElseThrow(() -> new RuntimeException(localizationUtils.getLocalizedMessage(MessageKeys.ROLE_DOES_NOT_EXISTS)));
         if(role.getName().toUpperCase().equals(Role.ADMIN)){
-            throw new PermissionDenyException("You cannot register an admin account");
+            throw new PermissionDenyException(localizationUtils.getLocalizedMessage(MessageKeys.ADMIN_ROLE_NOT_AVAILABLE));
         }
         User user = User
                 .builder()
@@ -62,15 +67,26 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public String login(String phoneNumber, String password) {
+    public String login(String phoneNumber, String password, Long roleId) {
         //check exists user
         User currentUser = this.userRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new DataNotFoundException("Invalid phone number or password"));
+                .orElseThrow(() -> new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_FAILED)));
 
+        //check password
         if(currentUser.getFacebookAccountId() == 0 && currentUser.getGoogleAccountId() == 0){
             if(!passwordEncoder.matches(password, currentUser.getPassword())){
-                throw new BadCredentialsException("Invalid phone number or password");
+                throw new BadCredentialsException(localizationUtils.getLocalizedMessage(MessageKeys.WRONG_PHONE_PASSWORD));
             }
+        }
+
+        //check role
+        Role role = this.roleRepository.findById(roleId).orElseThrow(() -> new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.ROLE_DOES_NOT_EXISTS)));
+        if(!roleId.equals(currentUser.getRole().getId())){
+            throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.ROLE_DOES_NOT_EXISTS));
+        }
+
+        if(!currentUser.isActive()) {
+            throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.USER_IS_LOCKED));
         }
 
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(

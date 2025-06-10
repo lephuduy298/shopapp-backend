@@ -1,5 +1,6 @@
 package com.project.shopapp.controller;
 
+import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dto.OrderDTO;
 import com.project.shopapp.dto.res.ResOrder;
 import com.project.shopapp.dto.res.ResultPagination;
@@ -7,6 +8,7 @@ import com.project.shopapp.error.IndvalidRuntimeException;
 import com.project.shopapp.error.PostException;
 import com.project.shopapp.models.Order;
 import com.project.shopapp.services.OrderService;
+import com.project.shopapp.utils.MessageKeys;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 public class OrderController {
 
     private final OrderService orderService;
+
+    private final LocalizationUtils localizationUtils;
 
     @PostMapping("")
     public ResponseEntity<ResOrder> createOrder(@Valid @RequestBody OrderDTO orderDTO) throws IndvalidRuntimeException {
@@ -74,6 +78,6 @@ public class OrderController {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteOrders(@PathVariable("id") Long id) throws PostException {
         this.orderService.deleteOrderById(id);
-        return ResponseEntity.ok().body("soft delete success");
+        return ResponseEntity.ok().body(localizationUtils.getLocalizedMessage(MessageKeys.DELETE_ORDER_SUCCESSFULLY));
     }
 }

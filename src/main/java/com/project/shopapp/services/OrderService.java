@@ -1,13 +1,15 @@
 package com.project.shopapp.services;
 
+import com.project.shopapp.dto.CartItemDTO;
 import com.project.shopapp.dto.OrderDTO;
 import com.project.shopapp.dto.res.ResOrder;
+import com.project.shopapp.error.DataNotFoundException;
 import com.project.shopapp.error.IndvalidRuntimeException;
 import com.project.shopapp.error.PostException;
-import com.project.shopapp.models.Order;
-import com.project.shopapp.models.OrderStatus;
-import com.project.shopapp.models.User;
+import com.project.shopapp.models.*;
+import com.project.shopapp.repositories.OrderDetailRepository;
 import com.project.shopapp.repositories.OrderRepository;
+import com.project.shopapp.repositories.ProductRepository;
 import com.project.shopapp.repositories.UserRepository;
 import com.project.shopapp.services.iservice.IOrderService;
 import jakarta.validation.Valid;
@@ -18,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -30,6 +33,10 @@ public class OrderService implements IOrderService {
     private final UserRepository userRepository;
 
     private final ModelMapper modelMapper;
+
+    private final ProductRepository productRepository;
+
+    private final OrderDetailRepository orderDetailRepository;
 
     @Override
     public Order createOrder(OrderDTO orderDTO) throws IndvalidRuntimeException {
@@ -60,9 +67,28 @@ public class OrderService implements IOrderService {
             throw new IndvalidRuntimeException("Shipping date is must be at least today");
         }
 
-        newOrder.setShippingDate(shippingDate);
+//        newOrder.setShippingDate(shippingDate);
         newOrder.setActive(true);
-        return this.orderRepository.save(newOrder);
+        this.orderRepository.save(newOrder);
+
+        //tạo danh sách OrderDetail từ cartItems
+        List<OrderDetail> orderDetails = new ArrayList<>();
+        for(CartItemDTO cartItem: orderDTO.getCartItems()){
+            OrderDetail orderDetail = new OrderDetail();
+            orderDetail.setOrder(newOrder);
+
+            Product product = this.productRepository.findById(cartItem.getProductId()).orElseThrow(() -> new DataNotFoundException("Product not found"));
+
+            orderDetail.setProduct(product);
+            orderDetail.setPrice(product.getPrice());
+            orderDetail.setNumberOfProducts(cartItem.getQuantity());
+
+            orderDetails.add(orderDetail);
+        }
+
+        this.orderDetailRepository.saveAll(orderDetails);
+
+        return newOrder;
     }
 
     @Override

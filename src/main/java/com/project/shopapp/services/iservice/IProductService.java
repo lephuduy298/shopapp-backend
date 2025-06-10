@@ -10,6 +10,8 @@ import com.project.shopapp.models.ProductImage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
+import java.util.List;
+
 public interface IProductService {
     Product createProduct(ProductDTO productDTO) throws PostException;
 
@@ -17,7 +19,7 @@ public interface IProductService {
 
     Product getProductById(long id);
 
-    Page<ResProduct> getAllProducts(PageRequest pageRequest);
+    Page<ResProduct> getAllProducts(String keyword, Long categoryId,PageRequest pageRequest);
 
     void deleteProduct(long id);
 
@@ -26,4 +28,5 @@ public interface IProductService {
     ProductImage createProductImage(long productId, ProductImageDTO productImageDTO) throws IndvalidRuntimeException;
 
 
+    List<Product> getProductsByIds(List<Long> productIds);
 }

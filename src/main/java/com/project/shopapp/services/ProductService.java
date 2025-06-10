@@ -17,6 +17,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ProductService implements IProductService {
@@ -67,8 +69,8 @@ public class ProductService implements IProductService {
     }
 
     @Override
-    public Page<ResProduct> getAllProducts(PageRequest pageRequest) {
-        Page<Product> productPage = this.productRepository.findAll(pageRequest);
+    public Page<ResProduct> getAllProducts(String keyword, Long categoryId, PageRequest pageRequest) {
+        Page<Product> productPage = this.productRepository.searchProducts(keyword, categoryId, pageRequest);
 
 //        ResultPagination result = new ResultPagination();
 
@@ -86,7 +88,7 @@ public class ProductService implements IProductService {
     }
 
     @Override
-    public ProductImage createProductImage(long productId, ProductImageDTO productImageDTO) throws IndvalidRuntimeException {
+public ProductImage createProductImage(long productId, ProductImageDTO productImageDTO) throws IndvalidRuntimeException {
         Product existsProduct = this.getProductById(productId);
         ProductImage newProductImage = ProductImage.builder()
                 .product(existsProduct)
@@ -94,7 +96,7 @@ public class ProductService implements IProductService {
                 .build();
 
         int size = this.productImageRepository.findByProductId(productId).size();
-        if (size > ProductImage.MAXIMUM_IMAGES_PER_PRODUCT){
+        if (size >= ProductImage.MAXIMUM_IMAGES_PER_PRODUCT){
             throw new IndvalidRuntimeException("Numbers of images must be <= " + ProductImage.MAXIMUM_IMAGES_PER_PRODUCT);
         }
         return productImageRepository.save(newProductImage);
@@ -102,5 +104,10 @@ public class ProductService implements IProductService {
 
     public boolean existsById(long id) {
         return this.productRepository.existsById(id);
+    }
+
+    @Override
+    public List<Product> getProductsByIds(List<Long> productIds) {
+        return this.productRepository.findByIdIn(productIds);
     }
 }

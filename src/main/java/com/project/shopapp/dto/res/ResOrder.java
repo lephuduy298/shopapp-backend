@@ -2,6 +2,7 @@ package com.project.shopapp.dto.res;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.project.shopapp.models.Order;
+import com.project.shopapp.models.OrderDetail;
 import com.project.shopapp.models.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,6 +10,7 @@ import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 
 @Getter
 @Setter
@@ -60,6 +62,8 @@ public class ResOrder {
     @JsonProperty("active")
     private Boolean active;//thuộc về admin
 
+    private List<OrderDetail> orderDetails;
+
     public static ResOrder convertToResOrder(Order order){
         return ResOrder
                 .builder()
@@ -77,6 +81,7 @@ public class ResOrder {
                 .trackingNumber(order.getTrackingNumber())
                 .paymentMethod(order.getPaymentMethod())
                 .active(order.getActive())
+                .orderDetails(order.getOrderDetails())
                 .build();
     }
 }

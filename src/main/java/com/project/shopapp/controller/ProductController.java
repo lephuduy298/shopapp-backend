@@ -1,21 +1,25 @@
 package com.project.shopapp.controller;
 
 import com.github.javafaker.Faker;
+import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dto.CategoryDTO;
 import com.project.shopapp.dto.ProductDTO;
 import com.project.shopapp.dto.ProductImageDTO;
 import com.project.shopapp.dto.res.ResProduct;
 import com.project.shopapp.dto.res.ResultPagination;
 import com.project.shopapp.dto.rest.RestResponse;
+import com.project.shopapp.error.DataNotFoundException;
 import com.project.shopapp.error.IndvalidRuntimeException;
 import com.project.shopapp.error.PostException;
 import com.project.shopapp.error.StorageException;
 import com.project.shopapp.models.Product;
 import com.project.shopapp.models.ProductImage;
 import com.project.shopapp.services.ProductService;
+import com.project.shopapp.utils.MessageKeys;
 import jakarta.validation.Valid;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -35,33 +39,42 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("api/v1/products")
+@RequestMapping("${api.prefix}/products")
 @RequiredArgsConstructor
 public class ProductController {
 
     private final ProductService productService;
 
+    private final LocalizationUtils localizationUtils;
+
     @PostMapping
-    public ResponseEntity<ResProduct> createProducts(@Valid @RequestBody ProductDTO productDTO) throws StorageException, IOException, PostException {
+    public ResponseEntity<ResProduct> createProducts(@Valid @RequestBody ProductDTO productDTO)
+            throws StorageException, IOException, PostException {
 
         Product currentProduct = this.productService.createProduct(productDTO);
 
         return ResponseEntity.ok().body(ResProduct.convertToResProduct(currentProduct));
     }
 
-    @PostMapping(value = "uploads/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "uploads/{id}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<List<ProductImage>> uploadImage(
-            @PathVariable("id") long id,
+            @PathVariable("id") long productId,
             @RequestParam("files") List<MultipartFile> files) throws StorageException, IOException, IndvalidRuntimeException {
 
 //        List<MultipartFile> files = productDTO.getFiles();
 
+        this.productService.getProductById(productId);
+
+
          files = files == null ? new ArrayList<MultipartFile>() : files;
 
         if(files.size() > ProductImage.MAXIMUM_IMAGES_PER_PRODUCT) {
-            throw new StorageException("You can only upload maximum " + ProductImage.MAXIMUM_IMAGES_PER_PRODUCT + " images per product");
+            throw new StorageException(localizationUtils.getLocalizedMessage(MessageKeys.UPLOAD_IMAGES_MAX_5,
+                    ProductImage.MAXIMUM_IMAGES_PER_PRODUCT));
         }
 
         List<ProductImage> productImages = new ArrayList<>();
@@ -75,7 +88,7 @@ public class ProductController {
 
 //             Kiểm tra kích thước file và định dạng
             if(file.getSize() > 10 * 1024 * 1024) { // Kích thước > 10MB
-               throw new StorageException("File is too large ! Maximum size is 10MB");
+               throw new StorageException(localizationUtils.getLocalizedMessage(MessageKeys.UPLOAD_IMAGES_FILE_LARGE));
             }
 
             //Kiểm tra định dạng file
@@ -83,17 +96,17 @@ public class ProductController {
             boolean isValid = allowedExtensions.stream().anyMatch(item -> file.getContentType().endsWith(item));
 
             if(!isValid){
-                throw new StorageException("Just allow file extension: pdf, jpg, jpeg, png, doc, docx");
+                throw new StorageException(localizationUtils.getLocalizedMessage(MessageKeys.UPLOAD_IMAGES_FILE_MUST_BE_IMAGE));
             }
-
 
             //Lưu file và cập nhật thumbnail vào database
             String fileName = this.storeFile(file);
 
-            Product currentProduct = this.productService.getProductById(id);
+//            Product currentProduct = this.productService.getProductById(productId);
 
+            // tạo bảng product image
             ProductImage productImage = this.productService.createProductImage(
-                    id,
+                    productId,
                     ProductImageDTO.builder().imageUrl(fileName).build());
 
             productImages.add(productImage);
@@ -126,15 +139,38 @@ public class ProductController {
 
     }
 
+    @GetMapping("/images/{imageName}")
+    public ResponseEntity<?> viewImage(@PathVariable String imageName) {
+        try {
+            java.nio.file.Path imagePath = Paths.get("uploads/"+imageName);
+            UrlResource resource = new UrlResource(imagePath.toUri());
+
+            if (resource.exists()) {
+                return ResponseEntity.ok()
+                        .contentType(MediaType.IMAGE_JPEG)
+                        .body(resource);
+            } else {
+                return ResponseEntity.ok()
+                        .contentType(MediaType.IMAGE_JPEG)
+                        .body(new UrlResource(Paths.get("uploads/notfoundimage.jpg").toUri()));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping
     public ResponseEntity<ResultPagination> fetchAllProducts(
-            @RequestParam("page") int page,
-            @RequestParam("limit") int limit
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "0", name = "category_id") Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int limit
     ){
 
-        PageRequest pageRequest = PageRequest.of(page, limit, Sort.by("createdAt"));
 
-        Page<ResProduct> productPage = this.productService.getAllProducts(pageRequest);
+        PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id").ascending());
+
+        Page<ResProduct> productPage = this.productService.getAllProducts(keyword, categoryId,pageRequest);
 
         List<ResProduct> productList = productPage.getContent();
 
@@ -166,10 +202,10 @@ public class ProductController {
     public ResponseEntity<String> deleteProduct(@PathVariable("id") long id) throws PostException {
         boolean existsProduct = this.productService.existsById(id);
         if(!existsProduct){
-            throw new PostException("id = " + id + " don't exists");
+            throw new PostException(localizationUtils.getLocalizedMessage(MessageKeys.PRODUCT_ID_NOT_EXISTS, id));
         }
         this.productService.deleteProduct(id);
-        return ResponseEntity.ok().body("Delete product success");
+        return ResponseEntity.ok().body(localizationUtils.getLocalizedMessage(MessageKeys.DELETE_PRODUCT_SUCCESSFULLY));
     }
 
 //    @PostMapping("/generatedatafake")
@@ -191,5 +227,15 @@ public class ProductController {
                     this.productService.createProduct(productDTO);
         }
         return ResponseEntity.ok().body("Successfully generate fake data");
+    }
+
+    @GetMapping("/by-ids")
+    public ResponseEntity<List<Product>> getProductsByIds(
+            @RequestParam("ids") String ids
+    ){
+        //tách chuỗi thành List
+        List<Long> productIds = Arrays.stream(ids.split(",")).map(Long::parseLong).collect(Collectors.toList());
+        List<Product> products = this.productService.getProductsByIds(productIds);
+        return ResponseEntity.ok().body(products);
     }
 }

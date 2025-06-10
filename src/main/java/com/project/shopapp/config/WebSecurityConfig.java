@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -34,6 +35,7 @@ public class WebSecurityConfig {
     public SecurityFilterChain securityFilterChain (HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
                 .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(
@@ -44,7 +46,13 @@ public class WebSecurityConfig {
                         .permitAll()
 
                         .requestMatchers(GET,
-                                String.format("%s/categories**", apiPrefix)).hasAnyRole(Role.USER, Role.ADMIN)
+                                String.format("%s/roles**", apiPrefix)).permitAll()
+
+                        .requestMatchers(GET,
+                                String.format("%s/categories**", apiPrefix)).permitAll()
+
+                        .requestMatchers(GET,
+                                String.format("%s/products/images/**", apiPrefix)).permitAll()
 
                         .requestMatchers(POST,
                                 String.format("%s/categories/**", apiPrefix)).hasAnyRole(Role.ADMIN)
@@ -56,7 +64,7 @@ public class WebSecurityConfig {
                                 String.format("%s/categories/**", apiPrefix)).hasAnyRole(Role.ADMIN)
 
                         .requestMatchers(GET,
-                                String.format("%s/products**", apiPrefix)).hasAnyRole(Role.USER, Role.ADMIN)
+                                String.format("%s/products/**", apiPrefix)).permitAll()
 
                         .requestMatchers(POST,
                                 String.format("%s/products/**", apiPrefix)).hasAnyRole(Role.ADMIN)
@@ -72,7 +80,7 @@ public class WebSecurityConfig {
                                 String.format("%s/orders/**", apiPrefix)).hasAnyRole(Role.USER)
 
                         .requestMatchers(GET,
-                                String.format("%s/orders/**", apiPrefix)).hasAnyRole(Role.USER, Role.ADMIN)
+                                String.format("%s/orders/**", apiPrefix)).permitAll()
 
                         .requestMatchers(PUT,
                                 String.format("%s/orders/**", apiPrefix)).hasRole(Role.ADMIN)
