@@ -19,6 +19,7 @@ import java.util.List;
 @Builder
 public class ResOrder {
 
+    private Long id;
 
     @JsonProperty("user_id")
     private long userId;
@@ -62,11 +63,13 @@ public class ResOrder {
     @JsonProperty("active")
     private Boolean active;//thuộc về admin
 
+    @JsonProperty("order_details")
     private List<OrderDetail> orderDetails;
 
     public static ResOrder convertToResOrder(Order order){
         return ResOrder
                 .builder()
+                .id(order.getId())
                 .userId(order.getUser().getId())
                 .fullName(order.getFullName())
                 .email(order.getEmail())
