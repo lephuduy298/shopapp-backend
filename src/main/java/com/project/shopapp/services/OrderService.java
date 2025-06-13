@@ -18,6 +18,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ public class OrderService implements IOrderService {
 
     private final OrderDetailRepository orderDetailRepository;
 
+    @Transactional
     @Override
     public Order createOrder(OrderDTO orderDTO) throws IndvalidRuntimeException {
 
@@ -91,6 +93,7 @@ public class OrderService implements IOrderService {
         return newOrder;
     }
 
+    @Transactional
     @Override
     public Order updateOrder(long id, OrderDTO orderDTO) throws IndvalidRuntimeException, PostException {
         Order order = this.getOrderById(id);
@@ -117,6 +120,7 @@ public class OrderService implements IOrderService {
         return orderPage.map(ResOrder::convertToResOrder);
     }
 
+    @Transactional
     @Override
     public void deleteOrderById(long id) throws PostException {
         Order order = this.getOrderById(id);

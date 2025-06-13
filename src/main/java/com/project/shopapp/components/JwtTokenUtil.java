@@ -34,6 +34,7 @@ public class JwtTokenUtil {
 //        List<String> listAuthority = new ArrayList<>();
         Map<String, Object> claims = new HashMap<>();
         claims.put("phoneNumber", userLogin.getPhoneNumber());
+        claims.put("userId", userLogin.getId());
 
         try {
             String token = Jwts.builder()

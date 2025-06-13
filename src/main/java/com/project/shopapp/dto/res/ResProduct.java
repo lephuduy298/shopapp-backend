@@ -15,6 +15,7 @@ import java.util.List;
 @Builder
 public class ResProduct extends ResponseBase {
 
+    private Long id;
     private String name;
     private Float price;
     private String thumbnail;
@@ -27,6 +28,7 @@ public class ResProduct extends ResponseBase {
 
     public static ResProduct convertToResProduct(Product product){
         ResProduct resProduct = ResProduct.builder()
+                .id(product.getId())
                 .name(product.getName())
                 .price(product.getPrice())
                 .thumbnail(product.getThumbnail())

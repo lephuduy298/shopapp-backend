@@ -1,10 +1,12 @@
 package com.project.shopapp.controller;
 
 import com.project.shopapp.components.LocalizationUtils;
+import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.dto.UserLoginDTO;
 import com.project.shopapp.dto.res.ResLogin;
 import com.project.shopapp.dto.res.ResRegister;
+import com.project.shopapp.dto.res.ResUser;
 import com.project.shopapp.error.PermissionDenyException;
 import com.project.shopapp.error.PostException;
 import com.project.shopapp.models.User;
@@ -12,11 +14,10 @@ import com.project.shopapp.services.UserService;
 import com.project.shopapp.utils.MessageKeys;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/v1/users")
@@ -58,6 +59,34 @@ public class UserController {
             return ResponseEntity.badRequest().body(ResLogin.builder()
                     .message(localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_FAILED, e.getMessage()))
                     .build());
+        }
+    }
+
+    @PostMapping("/details")
+    public ResponseEntity<ResUser> getUserDetail (@RequestHeader("Authorization") String authorizationHeader) throws Exception {
+        String extractedToken = authorizationHeader.substring(7);
+        User user = this.userService.getUserDetailByToken(extractedToken);
+
+        return ResponseEntity.ok().body(ResUser.convertToResUser(user));
+    }
+
+    @PutMapping("/details/{userId}")
+    public ResponseEntity<ResUser> updateUserDetails(
+            @PathVariable Long userId,
+            @RequestBody UpdateUserDTO updatedUserDTO,
+            @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        try {
+            String extractedToken = authorizationHeader.substring(7);
+            User user = userService.getUserDetailByToken(extractedToken);
+            // Ensure that the user making the request matches the user being updated
+            if (user.getId() != userId) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            User updatedUser = userService.updateUser(userId, updatedUserDTO);
+            return ResponseEntity.ok(ResUser.convertToResUser(updatedUser));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 

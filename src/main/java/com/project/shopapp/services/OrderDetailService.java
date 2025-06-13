@@ -11,6 +11,7 @@ import com.project.shopapp.repositories.ProductRepository;
 import com.project.shopapp.services.iservice.IOrderDetailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -23,6 +24,8 @@ public class OrderDetailService implements IOrderDetailService {
     private final OrderRepository orderRepository;
 
     private final OrderDetailRepository orderDetailRepository;
+
+    @Transactional
     @Override
     public OrderDetail createOrderDetail(OrderDetailDTO orderDetailDTO) throws PostException {
 
@@ -52,6 +55,7 @@ public class OrderDetailService implements IOrderDetailService {
         return this.orderDetailRepository.findById(id).orElseThrow(() -> new PostException("Order detail with id = " + id + " don't exists"));
     }
 
+    @Transactional
     @Override
     public OrderDetail updateOrderDetail(Long id, OrderDetailDTO orderDetailDTO) throws PostException {
         OrderDetail currentOrderDetail = this.getOrderDetailById(id);
@@ -74,6 +78,7 @@ public class OrderDetailService implements IOrderDetailService {
         return this.orderDetailRepository.save(currentOrderDetail);
     }
 
+    @Transactional
     @Override
     public void deleteById(Long id) {
 

@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -29,6 +30,7 @@ public class ProductService implements IProductService {
 
     private final ProductImageRepository productImageRepository;
 
+    @Transactional
     @Override
     public Product createProduct(ProductDTO productDTO) throws PostException {
         Category exitstCategory = this.categoryRepository.findById(productDTO.getCategoryId())
@@ -44,6 +46,7 @@ public class ProductService implements IProductService {
         return this.productRepository.save(newProduct);
     }
 
+    @Transactional
     @Override
     public Product updateProduct(long id, ProductDTO productDTO) {
         Product currentProduct = this.getProductById(id);
@@ -77,6 +80,7 @@ public class ProductService implements IProductService {
         return productPage.map(ResProduct::convertToResProduct);
     }
 
+    @Transactional
     @Override
     public void deleteProduct(long id) {
         this.productRepository.deleteById(id);
@@ -87,6 +91,7 @@ public class ProductService implements IProductService {
         return this.productRepository.existsByName(name);
     }
 
+    @Transactional
     @Override
 public ProductImage createProductImage(long productId, ProductImageDTO productImageDTO) throws IndvalidRuntimeException {
         Product existsProduct = this.getProductById(productId);

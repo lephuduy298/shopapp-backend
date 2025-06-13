@@ -2,6 +2,7 @@ package com.project.shopapp.services;
 
 import com.project.shopapp.components.JwtTokenUtil;
 import com.project.shopapp.components.LocalizationUtils;
+import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.error.DataNotFoundException;
 import com.project.shopapp.error.PermissionDenyException;
@@ -18,6 +19,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +37,7 @@ public class UserService implements IUserService {
 
     private final LocalizationUtils localizationUtils;
 
+    @Transactional
     @Override
     public User createUser(UserDTO userDTO) throws PermissionDenyException {
         if(this.userRepository.existsByPhoneNumber(userDTO.getPhoneNumber())){
@@ -97,4 +100,62 @@ public class UserService implements IUserService {
 
         return jwtTokenUtil.generateToken(currentUser);
     }
+
+    @Override
+    public User getUserDetailByToken(String extractedToken) throws Exception {
+        if(this.jwtTokenUtil.isTokenExpired(extractedToken)){
+            throw new Exception("Token is expired");
+        }
+
+        String phoneNumber = this.jwtTokenUtil.extractPhoneNumber(extractedToken);
+
+       return this.userRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new DataNotFoundException("User not found"));
+
+    }
+
+    @Transactional
+    @Override
+    public User updateUser(Long userId, UpdateUserDTO updatedUserDTO) throws Exception {
+        User existingUser = userRepository.findById(userId)
+                .orElseThrow(() -> new DataNotFoundException("User not found"));
+
+        // Check if the phone number is being changed and if it already exists for another user
+        String newPhoneNumber = updatedUserDTO.getPhoneNumber();
+        if (!existingUser.getPhoneNumber().equals(newPhoneNumber) &&
+                userRepository.existsByPhoneNumber(newPhoneNumber)) {
+            throw new Exception("Phone number already exists");
+        }
+
+        // Update user information based on the DTO
+        if (updatedUserDTO.getFullName() != null) {
+            existingUser.setFullName(updatedUserDTO.getFullName());
+        }
+        if (newPhoneNumber != null) {
+            existingUser.setPhoneNumber(newPhoneNumber);
+        }
+        if (updatedUserDTO.getAddress() != null) {
+            existingUser.setAddress(updatedUserDTO.getAddress());
+        }
+        if (updatedUserDTO.getDateOfBirth() != null) {
+            existingUser.setDateOfBirth(updatedUserDTO.getDateOfBirth());
+        }
+        if (updatedUserDTO.getFacebookAccountId() > 0) {
+            existingUser.setFacebookAccountId(updatedUserDTO.getFacebookAccountId());
+        }
+        if (updatedUserDTO.getGoogleAccountId() > 0) {
+            existingUser.setGoogleAccountId(updatedUserDTO.getGoogleAccountId());
+        }
+
+        // Update the password if it is provided in the DTO
+        if (updatedUserDTO.getPassword() != null
+                && !updatedUserDTO.getPassword().isEmpty()) {
+            String newPassword = updatedUserDTO.getPassword();
+            String encodedPassword = passwordEncoder.encode(newPassword);
+            existingUser.setPassword(encodedPassword);
+        }
+        //existingUser.setRole(updatedRole);
+        // Save the updated user
+        return userRepository.save(existingUser);
+    }
+
 }
