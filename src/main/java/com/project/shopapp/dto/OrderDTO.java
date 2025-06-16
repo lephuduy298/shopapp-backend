@@ -2,6 +2,7 @@ package com.project.shopapp.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.project.shopapp.models.Order;
+import com.project.shopapp.models.OrderStatus;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -33,6 +34,10 @@ public class OrderDTO {
     @NotBlank(message = "Phone number is required")
 //    @Size(min = 5, message = "Phone number must be at least 5 characters")
     private String phoneNumber;
+
+    @Column(name="order_date")
+    @JsonProperty("order_date")
+    private LocalDate orderDate;
 
     private String address;
 

@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -49,17 +50,20 @@ public class OrderController {
         return ResponseEntity.ok().body(ResOrder.convertToResOrder(order));
     }
 
-    @GetMapping()
+    @GetMapping("/get-orders-by-keyword")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ResultPagination> getAllOrders(
-            @RequestParam("page") int page,
-            @RequestParam("limit") int limit
+            @RequestParam(defaultValue = "", required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit
     ){
         //
+        PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id"));
+
+        Page<ResOrder> orders = this.orderService.getAllOrdersByKeyWord(keyword, pageRequest);
+
         ResultPagination result = new ResultPagination();
         ResultPagination.Meta meta = new ResultPagination.Meta();
-
-        PageRequest pageRequest = PageRequest.of(page, limit);
-        Page<ResOrder> orders = this.orderService.getAllOrders(pageRequest);
 
         List<ResOrder> resOrders = orders.getContent();
 

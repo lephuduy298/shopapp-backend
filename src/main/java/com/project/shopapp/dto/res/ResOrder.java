@@ -67,7 +67,7 @@ public class ResOrder {
     private List<OrderDetail> orderDetails;
 
     public static ResOrder convertToResOrder(Order order){
-        return ResOrder
+        ResOrder resOrder =  ResOrder
                 .builder()
                 .id(order.getId())
                 .userId(order.getUser().getId())
@@ -86,5 +86,6 @@ public class ResOrder {
                 .active(order.getActive())
                 .orderDetails(order.getOrderDetails())
                 .build();
+        return resOrder;
     }
 }

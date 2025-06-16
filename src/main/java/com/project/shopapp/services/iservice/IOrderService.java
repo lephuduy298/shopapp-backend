@@ -8,6 +8,7 @@ import com.project.shopapp.models.Order;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -18,7 +19,7 @@ public interface IOrderService {
 
     Order getOrderById(long id) throws PostException;
 
-    Page<ResOrder> getAllOrders(PageRequest pageRequest);
+    Page<ResOrder> getAllOrdersByKeyWord(String keyword, PageRequest pageRequest);
 
     void deleteOrderById(long id) throws PostException;
 

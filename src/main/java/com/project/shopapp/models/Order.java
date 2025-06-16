@@ -2,6 +2,8 @@ package com.project.shopapp.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ser.Serializers;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -42,6 +44,7 @@ public class Order {
     private String note;
 
     @Column(name="order_date")
+    @JsonProperty("order_date")
     private LocalDate orderDate;
 
     @Column(name = "status")

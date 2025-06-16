@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -114,8 +115,8 @@ public class OrderService implements IOrderService {
     }
 
     @Override
-    public Page<ResOrder> getAllOrders(PageRequest pageRequest) {
-        Page<Order> orderPage = this.orderRepository.findAll(pageRequest);
+    public Page<ResOrder> getAllOrdersByKeyWord(String keyword, PageRequest pageRequest) {
+        Page<Order> orderPage = this.orderRepository.findAll(keyword, pageRequest);
 
         return orderPage.map(ResOrder::convertToResOrder);
     }

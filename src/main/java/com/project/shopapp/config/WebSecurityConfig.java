@@ -21,6 +21,7 @@ import static org.springframework.http.HttpMethod.*;
 
 @Configuration
 //@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @EnableWebSecurity
 @EnableWebMvc
 @RequiredArgsConstructor
@@ -40,8 +41,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(
                                 String.format("%s/users/register", apiPrefix),
-                                String.format("%s/users/login", apiPrefix),
-                                String.format("%s/products/**", apiPrefix)
+                                String.format("%s/users/login", apiPrefix)
                                 )
                         .permitAll()
 
@@ -92,7 +92,7 @@ public class WebSecurityConfig {
                                 String.format("%s/order_details/**", apiPrefix)).hasAnyRole(Role.USER)
 
                         .requestMatchers(GET,
-                                String.format("%s/order_details/**", apiPrefix)).hasAnyRole(Role.USER, Role.ADMIN)
+                                String.format("%s/order_details/**", apiPrefix)).permitAll()
 
                         .requestMatchers(PUT,
                                 String.format("%s/order_details/**", apiPrefix)).hasRole(Role.ADMIN)
