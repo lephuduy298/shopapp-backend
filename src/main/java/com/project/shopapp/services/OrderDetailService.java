@@ -4,6 +4,7 @@ import com.project.shopapp.dto.OrderDetailDTO;
 import com.project.shopapp.error.PostException;
 import com.project.shopapp.models.Order;
 import com.project.shopapp.models.OrderDetail;
+import com.project.shopapp.models.OrderStatus;
 import com.project.shopapp.models.Product;
 import com.project.shopapp.repositories.OrderDetailRepository;
 import com.project.shopapp.repositories.OrderRepository;
@@ -45,6 +46,7 @@ public class OrderDetailService implements IOrderDetailService {
                 .build();
 
         newOrderDetail.setOrder(order);
+        newOrderDetail.setStatus(OrderStatus.PENDING);
         newOrderDetail.setProduct(product);
 
         return this.orderDetailRepository.save(newOrderDetail);

@@ -61,7 +61,7 @@ public class OrderService implements IOrderService {
                 .build();
 
         newOrder.setUser(currentUser);
-        newOrder.setStatus(OrderStatus.PENDING);
+//        newOrder.setStatus(OrderStatus.PENDING);
         newOrder.setOrderDate(LocalDate.now());
 
         LocalDate shippingDate = orderDTO.getShippingDate() == null ? LocalDate.now() : orderDTO.getShippingDate();
@@ -132,7 +132,7 @@ public class OrderService implements IOrderService {
     }
 
     @Override
-    public List<Order> getOrderByUserId(@Valid Long userId) {
-        return this.orderRepository.findByUserId(userId);
+    public Page<Order> getOrderByUserId(@Valid Long userId, PageRequest pageRequest) {
+        return this.orderRepository.findAllByUserId(userId, pageRequest);
     }
 }

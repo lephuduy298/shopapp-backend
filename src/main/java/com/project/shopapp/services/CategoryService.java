@@ -50,4 +50,9 @@ public class CategoryService implements ICategoryService {
     public void deleteCategory(long id) {
         this.categoryRepository.deleteById(id);
     }
+
+    @Override
+    public List<String> getAllBrand() {
+        return this.categoryRepository.findAllBrands();
+    }
 }

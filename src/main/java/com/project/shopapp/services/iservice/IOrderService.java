@@ -23,5 +23,5 @@ public interface IOrderService {
 
     void deleteOrderById(long id) throws PostException;
 
-    List<Order> getOrderByUserId(@Valid Long userId);
+    Page<Order> getOrderByUserId(@Valid Long userId, PageRequest pageRequest);
 }

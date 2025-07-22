@@ -15,4 +15,5 @@ public interface ICategoryService {
 
     void deleteCategory(long id);
 
+    List<String> getAllBrand();
 }

@@ -39,6 +39,11 @@ public class CategoryController {
         return ResponseEntity.ok().body(this.categoryService.getAllCategory());
     }
 
+    @GetMapping("/brands")
+    public ResponseEntity<List<String>> getAllBrands(){
+        return ResponseEntity.ok().body(this.categoryService.getAllBrand());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Category> fetchCategoryById(@PathVariable("id") long id){
         return ResponseEntity.ok().body(this.categoryService.getCategoryById(id));
