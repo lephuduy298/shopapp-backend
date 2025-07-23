@@ -53,6 +53,7 @@ public class OrderController {
 
         meta.setTotalPage(orders.getTotalPages());
         meta.setTotalItems(orders.getTotalElements());
+//        meta.setTotalItems(orders.get);
 
         result.setMeta(meta);
 //        result.setResult(orders.getContent());
@@ -111,8 +112,8 @@ public class OrderController {
         ResultPagination.Meta meta = new ResultPagination.Meta();
 
         List<ResOrder> resOrders = orders.getContent();
-
         meta.setTotalPage(orders.getTotalPages());
+        meta.setTotalItems(orders.getTotalElements());
         result.setMeta(meta);
         result.setResult(resOrders);
         return ResponseEntity.ok().body(result);

@@ -47,8 +47,8 @@ public class Order {
     @JsonProperty("order_date")
     private LocalDate orderDate;
 
-//    @Column(name = "status")
-//    private String status;
+    @Column(name = "status")
+    private String status;
 
     @Column(name = "total_money")
     private Float totalMoney;

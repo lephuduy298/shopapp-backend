@@ -61,7 +61,7 @@ public class OrderService implements IOrderService {
                 .build();
 
         newOrder.setUser(currentUser);
-//        newOrder.setStatus(OrderStatus.PENDING);
+        newOrder.setStatus(OrderStatus.PENDING);
         newOrder.setOrderDate(LocalDate.now());
 
         LocalDate shippingDate = orderDTO.getShippingDate() == null ? LocalDate.now() : orderDTO.getShippingDate();
@@ -76,7 +76,7 @@ public class OrderService implements IOrderService {
 
         //tạo danh sách OrderDetail từ cartItems
         List<OrderDetail> orderDetails = new ArrayList<>();
-        for(CartItemDTO cartItem: orderDTO.getCartItems()){
+        for(CartItemDTO cartItem: orderDTO.getOrderDetails()){
             OrderDetail orderDetail = new OrderDetail();
             orderDetail.setOrder(newOrder);
 
@@ -85,6 +85,7 @@ public class OrderService implements IOrderService {
             orderDetail.setProduct(product);
             orderDetail.setPrice(product.getPrice());
             orderDetail.setNumberOfProducts(cartItem.getQuantity());
+            orderDetail.setStatus(OrderStatus.PENDING);
 
             orderDetails.add(orderDetail);
         }
@@ -104,7 +105,11 @@ public class OrderService implements IOrderService {
                 new IndvalidRuntimeException("Cannot find user with id: " + id));
         modelMapper.typeMap(OrderDTO.class, Order.class).addMappings(mapper -> mapper.skip(Order::setId));
 
+        modelMapper.typeMap(CartItemDTO.class, OrderDetail.class)
+                .addMappings(mapper -> mapper.skip(OrderDetail::setId));
+
         modelMapper.map(orderDTO, order);
+
         order.setUser(existingUser);
         return this.orderRepository.save(order);
     }

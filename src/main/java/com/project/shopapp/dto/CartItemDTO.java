@@ -15,4 +15,7 @@ public class CartItemDTO {
 
     @JsonProperty("quantity")
     private Integer quantity;
+
+    @JsonProperty("status")
+    private String status;
 }

@@ -78,7 +78,7 @@ public class ResOrder {
                 .note(order.getNote())
                 .totalMoney(order.getTotalMoney())
                 .orderDate(order.getOrderDate())
-//                .status(order.getStatus())
+                .status(order.getStatus())
                 .shippingMethod(order.getShippingMethod())
                 .shippingAddress(order.getShippingAddress())
                 .trackingNumber(order.getTrackingNumber())
