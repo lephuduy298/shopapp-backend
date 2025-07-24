@@ -46,7 +46,7 @@ public class OrderDetailService implements IOrderDetailService {
                 .build();
 
         newOrderDetail.setOrder(order);
-        newOrderDetail.setStatus(OrderStatus.PENDING);
+//        newOrderDetail.setStatus(OrderStatus.PENDING);
         newOrderDetail.setProduct(product);
 
         return this.orderDetailRepository.save(newOrderDetail);

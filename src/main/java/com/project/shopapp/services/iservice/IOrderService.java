@@ -19,7 +19,7 @@ public interface IOrderService {
 
     Order getOrderById(long id) throws PostException;
 
-    Page<ResOrder> getAllOrdersByKeyWord(String keyword, PageRequest pageRequest);
+    Page<ResOrder> getAllOrdersByKeyWord(String keyword, String status, PageRequest pageRequest);
 
     void deleteOrderById(long id) throws PostException;
 

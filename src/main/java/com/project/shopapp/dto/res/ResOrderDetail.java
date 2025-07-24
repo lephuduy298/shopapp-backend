@@ -39,7 +39,7 @@ public class ResOrderDetail {
                 .productId(orderDetail.getProduct().getId())
                 .price(orderDetail.getPrice())
                 .numberOfProducts(orderDetail.getNumberOfProducts())
-                .status(orderDetail.getStatus())
+//                .status(orderDetail.getStatus())
                 .totalMoney(orderDetail.getTotalMoney())
                 .color(orderDetail.getColor())
                 .build();

@@ -101,12 +101,13 @@ public class OrderController {
     public ResponseEntity<ResultPagination> getAllOrders(
             @RequestParam(defaultValue = "", required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int limit
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "", required = false) String status
     ){
         //
         PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id"));
 
-        Page<ResOrder> orders = this.orderService.getAllOrdersByKeyWord(keyword, pageRequest);
+        Page<ResOrder> orders = this.orderService.getAllOrdersByKeyWord(keyword, status, pageRequest);
 
         ResultPagination result = new ResultPagination();
         ResultPagination.Meta meta = new ResultPagination.Meta();

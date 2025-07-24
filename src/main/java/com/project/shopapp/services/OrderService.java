@@ -85,7 +85,7 @@ public class OrderService implements IOrderService {
             orderDetail.setProduct(product);
             orderDetail.setPrice(product.getPrice());
             orderDetail.setNumberOfProducts(cartItem.getQuantity());
-            orderDetail.setStatus(OrderStatus.PENDING);
+//            orderDetail.setStatus(OrderStatus.PENDING);
 
             orderDetails.add(orderDetail);
         }
@@ -120,8 +120,8 @@ public class OrderService implements IOrderService {
     }
 
     @Override
-    public Page<ResOrder> getAllOrdersByKeyWord(String keyword, PageRequest pageRequest) {
-        Page<Order> orderPage = this.orderRepository.findAll(keyword, pageRequest);
+    public Page<ResOrder> getAllOrdersByKeyWord(String keyword, String status, PageRequest pageRequest) {
+        Page<Order> orderPage = this.orderRepository.findAll(keyword, status, pageRequest);
 
         return orderPage.map(ResOrder::convertToResOrder);
     }
