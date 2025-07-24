@@ -178,6 +178,7 @@ public class ProductController {
         ResultPagination.Meta meta = new ResultPagination.Meta();
 
         meta.setTotalPage(productPage.getTotalPages());
+        meta.setTotalItems(productPage.getTotalElements());
 
         result.setMeta(meta);
         result.setResult(productList);
