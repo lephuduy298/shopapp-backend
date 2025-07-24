@@ -1,10 +1,13 @@
 package com.project.shopapp.services;
 
+import com.github.javafaker.Cat;
 import com.project.shopapp.dto.CategoryDTO;
 import com.project.shopapp.models.Category;
 import com.project.shopapp.repositories.CategoryRepository;
 import com.project.shopapp.services.iservice.ICategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +33,11 @@ public class CategoryService implements ICategoryService {
     @Override
     public Category getCategoryById(long id) {
         return this.categoryRepository.findById(id).orElseThrow(() -> new RuntimeException("Category not found"));
+    }
+
+    @Override
+    public Page<Category> getCategoryByKeyword(String keyword, PageRequest pageRequest){
+        return this.categoryRepository.findAllByKeyword(keyword, pageRequest);
     }
 
     @Override
