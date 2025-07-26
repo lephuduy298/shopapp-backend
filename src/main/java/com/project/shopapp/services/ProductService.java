@@ -2,6 +2,7 @@ package com.project.shopapp.services;
 
 import com.project.shopapp.dto.ProductDTO;
 import com.project.shopapp.dto.ProductImageDTO;
+import com.project.shopapp.dto.UpdateProductDTO;
 import com.project.shopapp.dto.res.ResProduct;
 import com.project.shopapp.error.IndvalidRuntimeException;
 import com.project.shopapp.error.PostException;
@@ -32,9 +33,11 @@ public class ProductService implements IProductService {
 
     @Transactional
     @Override
-    public Product createProduct(ProductDTO productDTO) throws PostException {
+    public Product createProduct(ProductDTO productDTO) throws PostException, IndvalidRuntimeException {
         Category exitstCategory = this.categoryRepository.findById(productDTO.getCategoryId())
                 .orElseThrow(() -> new PostException("Category not found"));
+
+
 
         Product newProduct = Product.builder()
                 .name(productDTO.getName())
@@ -43,22 +46,39 @@ public class ProductService implements IProductService {
                 .thumbnail(productDTO.getThumbnail())
                 .category(exitstCategory)
                 .build();
-        return this.productRepository.save(newProduct);
+
+        Product currentProduct = this.productRepository.save(newProduct);
+
+        for(String url: productDTO.getUrls()) {
+            ProductImageDTO productImageDTO = new ProductImageDTO(currentProduct.getId(), url);
+            this.createProductImage(currentProduct.getId(), productImageDTO);
+        }
+
+        return currentProduct;
     }
 
     @Transactional
     @Override
-    public Product updateProduct(long id, ProductDTO productDTO) {
+    public Product updateProduct(long id, UpdateProductDTO updateProductDTO) throws IndvalidRuntimeException {
         Product currentProduct = this.getProductById(id);
 
         if(currentProduct != null){
-            Category currentCategory = this.categoryRepository.findById(productDTO.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Không tồn tại category với id = " + productDTO.getCategoryId()));
-            currentProduct.setName(productDTO.getName());
+            if(updateProductDTO.getUrls() != null) {
+                for (String url : updateProductDTO.getUrls()) {
+                    ProductImageDTO productImageDTO = new ProductImageDTO(id, url);
+                    this.createProductImage(id, productImageDTO);
+                }
+            }
+        }
+
+        if(currentProduct != null){
+            Category currentCategory = this.categoryRepository.findById(updateProductDTO.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Không tồn tại category với id = " + updateProductDTO.getCategoryId()));
+            currentProduct.setName(updateProductDTO.getName());
             currentProduct.setCategory(currentCategory);
-            currentProduct.setPrice(productDTO.getPrice());
-            currentProduct.setDescription(productDTO.getDescription());
-            currentProduct.setThumbnail(productDTO.getThumbnail());
+            currentProduct.setPrice(updateProductDTO.getPrice());
+            currentProduct.setDescription(updateProductDTO.getDescription());
+            currentProduct.setThumbnail(updateProductDTO.getThumbnail());
 
             return this.productRepository.save(currentProduct);
         }

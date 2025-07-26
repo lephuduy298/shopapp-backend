@@ -2,6 +2,7 @@ package com.project.shopapp.services.iservice;
 
 import com.project.shopapp.dto.ProductDTO;
 import com.project.shopapp.dto.ProductImageDTO;
+import com.project.shopapp.dto.UpdateProductDTO;
 import com.project.shopapp.dto.res.ResProduct;
 import com.project.shopapp.error.IndvalidRuntimeException;
 import com.project.shopapp.error.PostException;
@@ -13,9 +14,9 @@ import org.springframework.data.domain.PageRequest;
 import java.util.List;
 
 public interface IProductService {
-    Product createProduct(ProductDTO productDTO) throws PostException;
+    Product createProduct(ProductDTO productDTO) throws PostException, IndvalidRuntimeException;
 
-    Product updateProduct(long id, ProductDTO productDTO);
+    Product updateProduct(long id, UpdateProductDTO updateProductDTO) throws IndvalidRuntimeException;
 
     Product getProductById(long id);
 

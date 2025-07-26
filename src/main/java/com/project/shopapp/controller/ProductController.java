@@ -5,6 +5,7 @@ import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dto.CategoryDTO;
 import com.project.shopapp.dto.ProductDTO;
 import com.project.shopapp.dto.ProductImageDTO;
+import com.project.shopapp.dto.UpdateProductDTO;
 import com.project.shopapp.dto.res.ResProduct;
 import com.project.shopapp.dto.res.ResultPagination;
 import com.project.shopapp.dto.rest.RestResponse;
@@ -14,6 +15,7 @@ import com.project.shopapp.error.PostException;
 import com.project.shopapp.error.StorageException;
 import com.project.shopapp.models.Product;
 import com.project.shopapp.models.ProductImage;
+import com.project.shopapp.services.FileService;
 import com.project.shopapp.services.ProductService;
 import com.project.shopapp.utils.MessageKeys;
 import jakarta.validation.Valid;
@@ -50,13 +52,77 @@ public class ProductController {
 
     private final LocalizationUtils localizationUtils;
 
-    @PostMapping
-    public ResponseEntity<ResProduct> createProducts(@Valid @RequestBody ProductDTO productDTO)
-            throws StorageException, IOException, PostException {
+    private final FileService fileService;
 
-        Product currentProduct = this.productService.createProduct(productDTO);
+    @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createProducts(@Valid @RequestPart(value = "product") ProductDTO productDTO,
+                                                     @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnailImage,
+                                                     @RequestParam(value = "images", required = false) List<MultipartFile> images)
+            throws Exception {
 
-        return ResponseEntity.ok().body(ResProduct.convertToResProduct(currentProduct));
+        List<String> allowedExtensions = Arrays.asList("pdf", "jpg", "jpeg", "png",
+                "doc", "docx");
+
+//        Product currentProduct = this.productService.getProductById(pro)
+
+        if (thumbnailImage != null && !thumbnailImage.isEmpty()) {
+            if (thumbnailImage.getSize() > 10 * 1024 * 1024) { // Kích thước > 10MB
+                return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                        .body(localizationUtils
+                                .getLocalizedMessage(MessageKeys.UPLOAD_IMAGES_FILE_LARGE));
+            }
+
+            String fileName = thumbnailImage.getOriginalFilename();
+
+            boolean isValidExtension = allowedExtensions.stream()
+                    .anyMatch(item -> fileName.toLowerCase().endsWith("." + item));
+
+            if (!isValidExtension) {
+                throw new Exception("Invalid file extension. Only allow " +
+                        allowedExtensions.toString());
+            }
+
+            String storeFileName = this.fileService.storeFile(thumbnailImage, "");
+
+            productDTO.setThumbnail(storeFileName);
+        }
+
+        if (images != null && !images.isEmpty()) {
+
+            if (productDTO.getUrls() == null) {
+                productDTO.setUrls(new ArrayList<>());
+            }
+
+            for (MultipartFile image : images) {
+                if (image.getSize() > 10 * 1024 * 1024) {
+                    return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                            .body(localizationUtils.getLocalizedMessage(MessageKeys.UPLOAD_IMAGES_FILE_LARGE));
+                }
+
+                String imageName = image.getOriginalFilename();
+                boolean isValidImageExt = allowedExtensions.stream()
+                        .anyMatch(ext -> imageName.toLowerCase().endsWith("." + ext));
+
+                if (!isValidImageExt) {
+                    throw new Exception("Invalid image file extension for file: " + imageName + ". Only allowed: " + allowedExtensions);
+                }
+
+                // Nếu cần, có thể lưu từng ảnh tại đây
+                // String storedImage = this.fileService.storeFile(image, "");
+                // updateProductDTO.addImage(storedImage); (nếu có list trong DTO)
+
+                String storeFileName = this.fileService.storeFile(image, "");
+
+                productDTO.getUrls().add(storeFileName);
+            }
+        }
+
+        Product createProduct = this.productService.createProduct(productDTO);
+        return ResponseEntity.ok().body(ResProduct.convertToResProduct(createProduct));
+
+//        Product currentProduct = this.productService.createProduct(productDTO);
+//
+//        return ResponseEntity.ok().body(ResProduct.convertToResProduct(currentProduct));
     }
 
     @PostMapping(value = "uploads/{id}",
@@ -100,7 +166,7 @@ public class ProductController {
             }
 
             //Lưu file và cập nhật thumbnail vào database
-            String fileName = this.storeFile(file);
+            String fileName = this.fileService.storeFile(file, "");
 
 //            Product currentProduct = this.productService.getProductById(productId);
 
@@ -115,29 +181,29 @@ public class ProductController {
 
     }
 
-    private String storeFile(MultipartFile file) throws IOException, StorageException {
-        //lấy tên file gốc và dùng stringunits và cleanPath để loại bỏ ký tự thừa
-        if(file.getOriginalFilename() == null){
-            throw new StorageException("Invalid images format");
-        }
-        String filename = StringUtils.cleanPath(file.getOriginalFilename());
-        //dùng UUID để tạo tên file là duy nhất
-        String uniqueFilename = UUID.randomUUID().toString() + "_" + filename;
-        Path uploadDir = Paths.get("uploads");
-
-        //kiểm tra thư mục đã tồn tại chưa và tạo
-        if (!Files.exists(uploadDir)) {
-            Files.createDirectories(uploadDir);
-        }
-
-        // Đường dẫn đầy đủ đến file
-        Path destination = Paths.get(uploadDir.toString(), uniqueFilename);
-
-        //Sao chép sang thư mục đích
-        Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-        return uniqueFilename;
-
-    }
+//    private String storeFile(MultipartFile file) throws IOException, StorageException {
+//        //lấy tên file gốc và dùng stringunits và cleanPath để loại bỏ ký tự thừa
+//        if(file.getOriginalFilename() == null){
+//            throw new StorageException("Invalid images format");
+//        }
+//        String filename = StringUtils.cleanPath(file.getOriginalFilename());
+//        //dùng UUID để tạo tên file là duy nhất
+//        String uniqueFilename = UUID.randomUUID().toString() + "_" + filename;
+//        Path uploadDir = Paths.get("uploads");
+//
+//        //kiểm tra thư mục đã tồn tại chưa và tạo
+//        if (!Files.exists(uploadDir)) {
+//            Files.createDirectories(uploadDir);
+//        }
+//
+//        // Đường dẫn đầy đủ đến file
+//        Path destination = Paths.get(uploadDir.toString(), uniqueFilename);
+//
+//        //Sao chép sang thư mục đích
+//        Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+//        return uniqueFilename;
+//
+//    }
 
     @GetMapping("/images/{imageName}")
     public ResponseEntity<?> viewImage(@PathVariable String imageName) {
@@ -186,9 +252,84 @@ public class ProductController {
         return ResponseEntity.ok().body(result);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ResProduct> updateProduct(@PathVariable("id") long id,@RequestBody ProductDTO productDTO){
-        Product updatedProduct = this.productService.updateProduct(id, productDTO);
+//    @PutMapping("/{id}")
+//    public ResponseEntity<ResProduct> updateProduct(@PathVariable("id") long id,@RequestBody ProductDTO productDTO){
+//        Product updatedProduct = this.productService.updateProduct(id, productDTO);
+//        return ResponseEntity.ok().body(ResProduct.convertToResProduct(updatedProduct));
+//    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateProduct(@PathVariable("id") long id,
+                                                    @RequestPart(value = "product", required = false) UpdateProductDTO updateProductDTO,
+                                                    @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnailImage,
+                                                    @RequestParam(value = "images", required = false) List<MultipartFile> images) throws Exception {
+
+        Product currentProduct = this.productService.getProductById(id);
+
+        if(currentProduct != null && thumbnailImage==null){
+            updateProductDTO.setThumbnail(currentProduct.getThumbnail());
+        }
+
+        List<String> allowedExtensions = Arrays.asList("pdf", "jpg", "jpeg", "png",
+                "doc", "docx");
+
+        if (thumbnailImage != null && !thumbnailImage.isEmpty()) {
+            if (thumbnailImage.getSize() > 10 * 1024 * 1024) { // Kích thước > 10MB
+                return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                        .body(localizationUtils
+                                .getLocalizedMessage(MessageKeys.UPLOAD_IMAGES_FILE_LARGE));
+            }
+
+            String fileName = thumbnailImage.getOriginalFilename();
+
+            boolean isValidExtension = allowedExtensions.stream()
+                    .anyMatch(item -> fileName.toLowerCase().endsWith("." + item));
+
+            if (!isValidExtension) {
+                throw new Exception("Invalid file extension. Only allow " +
+                        allowedExtensions.toString());
+            }
+
+            String storeFileName = this.fileService.storeFile(thumbnailImage, "");
+
+            updateProductDTO.setThumbnail(storeFileName);
+        }
+
+        if (images != null && !images.isEmpty()) {
+
+            if (updateProductDTO.getUrls() == null) {
+                updateProductDTO.setUrls(new ArrayList<>());
+            }
+
+            for (MultipartFile image : images) {
+                if (image.getSize() > 10 * 1024 * 1024) {
+                    return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                            .body(localizationUtils.getLocalizedMessage(MessageKeys.UPLOAD_IMAGES_FILE_LARGE));
+                }
+
+                String imageName = image.getOriginalFilename();
+                boolean isValidImageExt = allowedExtensions.stream()
+                        .anyMatch(ext -> imageName.toLowerCase().endsWith("." + ext));
+
+                if (!isValidImageExt) {
+                    throw new Exception("Invalid image file extension for file: " + imageName + ". Only allowed: " + allowedExtensions);
+                }
+
+                // Nếu cần, có thể lưu từng ảnh tại đây
+                // String storedImage = this.fileService.storeFile(image, "");
+                // updateProductDTO.addImage(storedImage); (nếu có list trong DTO)
+
+                String storeFileName = this.fileService.storeFile(image, "");
+
+                updateProductDTO.getUrls().add(storeFileName);
+            }
+        }
+
+        if (updateProductDTO.getUrls() == null) {
+            updateProductDTO.setUrls(new ArrayList<>());
+        }
+
+        Product updatedProduct = this.productService.updateProduct(id, updateProductDTO);
         return ResponseEntity.ok().body(ResProduct.convertToResProduct(updatedProduct));
     }
 
@@ -210,7 +351,7 @@ public class ProductController {
     }
 
 //    @PostMapping("/generatedatafake")
-    private ResponseEntity<String> generatedatafake() throws PostException {
+    private ResponseEntity<String> generatedatafake() throws PostException, IndvalidRuntimeException {
         Faker faker = new Faker();
         for(int i = 0; i < 1000; i++){
                     String productName = faker.commerce().productName();
