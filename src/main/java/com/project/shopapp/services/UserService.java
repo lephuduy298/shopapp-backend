@@ -73,7 +73,7 @@ public class UserService implements IUserService {
     public String login(String phoneNumber, String password, Long roleId) {
         //check exists user
         User currentUser = this.userRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_FAILED)));
+                .orElseThrow(() -> new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.WRONG_PHONE_PASSWORD)));
 
         //check password
         if(currentUser.getFacebookAccountId() == 0 && currentUser.getGoogleAccountId() == 0){

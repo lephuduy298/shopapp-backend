@@ -20,7 +20,7 @@ public interface IProductService {
 
     Product getProductById(long id);
 
-    Page<ResProduct> getAllProducts(String keyword, Long categoryId,PageRequest pageRequest);
+    Page<ResProduct> getAllProducts(String keyword, Long categoryId, List<String> brand, Double minPrice, Double maxPrice, PageRequest pageRequest);
 
     void deleteProduct(long id);
 

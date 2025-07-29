@@ -9,6 +9,7 @@ import com.project.shopapp.dto.res.ResRegister;
 import com.project.shopapp.dto.res.ResUser;
 import com.project.shopapp.error.PermissionDenyException;
 import com.project.shopapp.error.PostException;
+import com.project.shopapp.error.UserNotFoundException;
 import com.project.shopapp.models.User;
 import com.project.shopapp.services.UserService;
 import com.project.shopapp.utils.MessageKeys;
@@ -55,6 +56,14 @@ public class UserController {
                     .build();
 
             return ResponseEntity.ok().body(resLogin);
+
+//        } catch (UserNotFoundException e) {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+//                    ResLogin.builder()
+//                            .message(localizationUtils.getLocalizedMessage(MessageKeys.USER_NOT_FOUND, e.getMessage()))
+//                            .build()
+//            );
+
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ResLogin.builder()
                     .message(localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_FAILED, e.getMessage()))

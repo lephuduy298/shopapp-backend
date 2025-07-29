@@ -44,7 +44,7 @@ public class OrderController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int limit){
 
-        PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id").ascending());
+        PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id").descending());
 
         Page<Order> orders = this.orderService.getOrderByUserId(userId, pageRequest);
 

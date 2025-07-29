@@ -92,18 +92,22 @@ public class ProductService implements IProductService {
     }
 
     @Override
-    public Page<ResProduct> getAllProducts(String keyword, Long categoryId, PageRequest pageRequest) {
-        Page<Product> productPage = this.productRepository.searchProducts(keyword, categoryId, pageRequest);
+    public Page<ResProduct> getAllProducts(String keyword, Long categoryId, List<String> brand, Double minPrice, Double maxPrice, PageRequest pageRequest) {
 
-//        ResultPagination result = new ResultPagination();
+        if (brand != null && brand.isEmpty()) {
+            brand = null;
+        }
+        Page<Product> productPage = this.productRepository.searchProducts(keyword, categoryId, brand, minPrice, maxPrice, pageRequest);
 
         return productPage.map(ResProduct::convertToResProduct);
     }
 
+
     @Transactional
     @Override
     public void deleteProduct(long id) {
-        this.productRepository.deleteById(id);
+        productRepository.deleteProductImagesByProductId(id); // Xóa ảnh trước
+        productRepository.deleteProductById(id);
     }
 
     @Override

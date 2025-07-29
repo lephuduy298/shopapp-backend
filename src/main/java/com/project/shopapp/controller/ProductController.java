@@ -225,18 +225,61 @@ public class ProductController {
         }
     }
 
+//    @GetMapping
+//    public ResponseEntity<ResultPagination> fetchAllProducts(
+//            @RequestParam(defaultValue = "") String keyword,
+//            @RequestParam(defaultValue = "0", name = "category_id") Long categoryId,
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "12") int limit
+//    ){
+//
+//
+//        PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id").ascending());
+//
+//        Page<ResProduct> productPage = this.productService.getAllProducts(keyword, categoryId,pageRequest);
+//
+//        List<ResProduct> productList = productPage.getContent();
+//
+//        ResultPagination result = new ResultPagination();
+//        ResultPagination.Meta meta = new ResultPagination.Meta();
+//
+//        meta.setTotalPage(productPage.getTotalPages());
+//        meta.setTotalItems(productPage.getTotalElements());
+//
+//        result.setMeta(meta);
+//        result.setResult(productList);
+//
+//        return ResponseEntity.ok().body(result);
+//    }
+
     @GetMapping
     public ResponseEntity<ResultPagination> fetchAllProducts(
-            @RequestParam(defaultValue = "") String keyword,
-            @RequestParam(defaultValue = "0", name = "category_id") Long categoryId,
+            @RequestParam(defaultValue = "", required = false) String keyword,
+            @RequestParam(defaultValue = "0", name = "category_id", required = false) Long categoryId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "12") int limit
-    ){
+            @RequestParam(defaultValue = "12") int limit,
+            @RequestParam(required = false) String brand,
+            @RequestParam(name = "min_price", required = false) Double minPrice,
+            @RequestParam(name = "max_price", required = false) Double maxPrice
+    ) {
 
+        List<String> brandList = new ArrayList<>();
+        if (brand != null && !brand.isEmpty()) {
+            brandList = Arrays.stream(brand.split(","))
+                    .map(String::trim)
+                    .collect(Collectors.toList());
+        }
 
         PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id").ascending());
 
-        Page<ResProduct> productPage = this.productService.getAllProducts(keyword, categoryId,pageRequest);
+        Page<ResProduct> productPage = this.productService.getAllProducts(
+                keyword,
+                categoryId,
+                brandList,
+                minPrice,
+                maxPrice,
+                pageRequest
+        );
 
         List<ResProduct> productList = productPage.getContent();
 
@@ -251,6 +294,7 @@ public class ProductController {
 
         return ResponseEntity.ok().body(result);
     }
+
 
 //    @PutMapping("/{id}")
 //    public ResponseEntity<ResProduct> updateProduct(@PathVariable("id") long id,@RequestBody ProductDTO productDTO){
