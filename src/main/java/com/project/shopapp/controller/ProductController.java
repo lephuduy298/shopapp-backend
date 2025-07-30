@@ -1,5 +1,7 @@
 package com.project.shopapp.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javafaker.Faker;
 import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dto.CategoryDTO;
@@ -13,6 +15,7 @@ import com.project.shopapp.error.DataNotFoundException;
 import com.project.shopapp.error.IndvalidRuntimeException;
 import com.project.shopapp.error.PostException;
 import com.project.shopapp.error.StorageException;
+import com.project.shopapp.models.PriceRange;
 import com.project.shopapp.models.Product;
 import com.project.shopapp.models.ProductImage;
 import com.project.shopapp.services.FileService;
@@ -259,8 +262,8 @@ public class ProductController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int limit,
             @RequestParam(required = false) String brand,
-            @RequestParam(name = "min_price", required = false) Double minPrice,
-            @RequestParam(name = "max_price", required = false) Double maxPrice
+            @RequestParam(name = "price_ranges", required = false) String priceRangesJson
+
     ) {
 
         List<String> brandList = new ArrayList<>();
@@ -270,14 +273,27 @@ public class ProductController {
                     .collect(Collectors.toList());
         }
 
+        List<PriceRange> priceRangeList = new ArrayList<>();
+        if (priceRangesJson != null && !priceRangesJson.isEmpty()) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            try {
+                priceRangeList = objectMapper.readValue(
+                        priceRangesJson,
+                        new TypeReference<List<PriceRange>>() {}
+                );
+            } catch (Exception e) {
+                e.printStackTrace();
+                return ResponseEntity.badRequest().body(null); // hoặc custom error response
+            }
+        }
+
         PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id").ascending());
 
         Page<ResProduct> productPage = this.productService.getAllProducts(
                 keyword,
                 categoryId,
                 brandList,
-                minPrice,
-                maxPrice,
+                priceRangeList,
                 pageRequest
         );
 

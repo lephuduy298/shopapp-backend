@@ -7,15 +7,18 @@ import com.project.shopapp.dto.res.ResProduct;
 import com.project.shopapp.error.IndvalidRuntimeException;
 import com.project.shopapp.error.PostException;
 import com.project.shopapp.models.Category;
+import com.project.shopapp.models.PriceRange;
 import com.project.shopapp.models.Product;
 import com.project.shopapp.models.ProductImage;
 import com.project.shopapp.repositories.CategoryRepository;
 import com.project.shopapp.repositories.ProductImageRepository;
 import com.project.shopapp.repositories.ProductRepository;
 import com.project.shopapp.services.iservice.IProductService;
+import com.project.shopapp.services.specification.ProductSpec;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,12 +95,15 @@ public class ProductService implements IProductService {
     }
 
     @Override
-    public Page<ResProduct> getAllProducts(String keyword, Long categoryId, List<String> brand, Double minPrice, Double maxPrice, PageRequest pageRequest) {
+    public Page<ResProduct> getAllProducts(String keyword, Long categoryId, List<String> brand, List<PriceRange> priceRanges, PageRequest pageRequest) {
 
-        if (brand != null && brand.isEmpty()) {
-            brand = null;
-        }
-        Page<Product> productPage = this.productRepository.searchProducts(keyword, categoryId, brand, minPrice, maxPrice, pageRequest);
+        Specification<Product> spec = Specification
+                .where(ProductSpec.hasKeyword(keyword))
+                .and(ProductSpec.hasCategory(categoryId))
+                .and(ProductSpec.hasBrand(brand))
+                .and(ProductSpec.inPriceRanges(priceRanges));
+
+        Page<Product> productPage = this.productRepository.findAll(spec, pageRequest);
 
         return productPage.map(ResProduct::convertToResProduct);
     }

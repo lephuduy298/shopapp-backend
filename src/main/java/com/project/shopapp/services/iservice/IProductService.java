@@ -6,6 +6,7 @@ import com.project.shopapp.dto.UpdateProductDTO;
 import com.project.shopapp.dto.res.ResProduct;
 import com.project.shopapp.error.IndvalidRuntimeException;
 import com.project.shopapp.error.PostException;
+import com.project.shopapp.models.PriceRange;
 import com.project.shopapp.models.Product;
 import com.project.shopapp.models.ProductImage;
 import org.springframework.data.domain.Page;
@@ -20,7 +21,7 @@ public interface IProductService {
 
     Product getProductById(long id);
 
-    Page<ResProduct> getAllProducts(String keyword, Long categoryId, List<String> brand, Double minPrice, Double maxPrice, PageRequest pageRequest);
+    Page<ResProduct> getAllProducts(String keyword, Long categoryId, List<String> brand, List<PriceRange> priceRanges, PageRequest pageRequest);
 
     void deleteProduct(long id);
 
