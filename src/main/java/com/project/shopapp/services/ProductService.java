@@ -1,18 +1,18 @@
 package com.project.shopapp.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.shopapp.dto.ProductDTO;
 import com.project.shopapp.dto.ProductImageDTO;
 import com.project.shopapp.dto.UpdateProductDTO;
 import com.project.shopapp.dto.res.ResProduct;
 import com.project.shopapp.error.IndvalidRuntimeException;
 import com.project.shopapp.error.PostException;
-import com.project.shopapp.models.Category;
-import com.project.shopapp.models.PriceRange;
-import com.project.shopapp.models.Product;
-import com.project.shopapp.models.ProductImage;
+import com.project.shopapp.models.*;
 import com.project.shopapp.repositories.CategoryRepository;
 import com.project.shopapp.repositories.ProductImageRepository;
 import com.project.shopapp.repositories.ProductRepository;
+import com.project.shopapp.repositories.ProductSpecificationRepository;
 import com.project.shopapp.services.iservice.IProductService;
 import com.project.shopapp.services.specification.ProductSpec;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +22,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -34,9 +36,11 @@ public class ProductService implements IProductService {
 
     private final ProductImageRepository productImageRepository;
 
+    private final ProductSpecificationRepository productSpecificationRepository;
+
     @Transactional
     @Override
-    public Product createProduct(ProductDTO productDTO) throws PostException, IndvalidRuntimeException {
+    public Product createProduct(ProductDTO productDTO, String specificationsJson) throws PostException, IndvalidRuntimeException, JsonProcessingException {
         Category exitstCategory = this.categoryRepository.findById(productDTO.getCategoryId())
                 .orElseThrow(() -> new PostException("Category not found"));
 
@@ -57,12 +61,22 @@ public class ProductService implements IProductService {
             this.createProductImage(currentProduct.getId(), productImageDTO);
         }
 
+        List<ProductSpecification> specifications = new ArrayList<>();
+        if (specificationsJson != null && !specificationsJson.isEmpty()) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            specifications = Arrays.asList(objectMapper.readValue(specificationsJson, ProductSpecification[].class));
+        }
+
+        for (ProductSpecification spec : specifications) {
+            this.createProductSpecification(newProduct.getId(), spec);  // currentProduct là Product đã lấy bằng id
+        }
+
         return currentProduct;
     }
 
     @Transactional
     @Override
-    public Product updateProduct(long id, UpdateProductDTO updateProductDTO) throws IndvalidRuntimeException {
+    public Product updateProduct(long id, UpdateProductDTO updateProductDTO, List<ProductSpecification> specifications) throws IndvalidRuntimeException {
         Product currentProduct = this.getProductById(id);
 
         if(currentProduct != null){
@@ -82,6 +96,14 @@ public class ProductService implements IProductService {
             currentProduct.setPrice(updateProductDTO.getPrice());
             currentProduct.setDescription(updateProductDTO.getDescription());
             currentProduct.setThumbnail(updateProductDTO.getThumbnail());
+
+            if (specifications != null && !specifications.isEmpty()) {
+                this.productSpecificationRepository.deleteByProduct(currentProduct); // hoặc deleteAll by product
+                for (ProductSpecification spec : specifications) {
+                    this.createProductSpecification(id, spec);
+                }
+            }
+
 
             return this.productRepository.save(currentProduct);
         }
@@ -123,7 +145,7 @@ public class ProductService implements IProductService {
 
     @Transactional
     @Override
-public ProductImage createProductImage(long productId, ProductImageDTO productImageDTO) throws IndvalidRuntimeException {
+    public ProductImage createProductImage(long productId, ProductImageDTO productImageDTO) throws IndvalidRuntimeException {
         Product existsProduct = this.getProductById(productId);
         ProductImage newProductImage = ProductImage.builder()
                 .product(existsProduct)
@@ -135,6 +157,20 @@ public ProductImage createProductImage(long productId, ProductImageDTO productIm
             throw new IndvalidRuntimeException("Numbers of images must be <= " + ProductImage.MAXIMUM_IMAGES_PER_PRODUCT);
         }
         return productImageRepository.save(newProductImage);
+    }
+
+
+    @Transactional
+//    @Override
+    public ProductSpecification createProductSpecification(long productId, ProductSpecification specification) throws IndvalidRuntimeException {
+        Product existsProduct = this.getProductById(productId);
+
+            ProductSpecification newProductSpecification = ProductSpecification.builder()
+                    .product(existsProduct)
+                    .specName(specification.getSpecName())
+                    .specValue(specification.getSpecValue())
+                    .build();
+            return this.productSpecificationRepository.save(newProductSpecification);
     }
 
     public boolean existsById(long id) {

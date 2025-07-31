@@ -1,5 +1,6 @@
 package com.project.shopapp.controller;
 
+import ch.qos.logback.core.net.SyslogOutputStream;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javafaker.Faker;
@@ -18,7 +19,9 @@ import com.project.shopapp.error.StorageException;
 import com.project.shopapp.models.PriceRange;
 import com.project.shopapp.models.Product;
 import com.project.shopapp.models.ProductImage;
+import com.project.shopapp.models.ProductSpecification;
 import com.project.shopapp.services.FileService;
+import com.project.shopapp.services.ProductImageService;
 import com.project.shopapp.services.ProductService;
 import com.project.shopapp.utils.MessageKeys;
 import jakarta.validation.Valid;
@@ -40,6 +43,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -57,10 +61,13 @@ public class ProductController {
 
     private final FileService fileService;
 
+    private final ProductImageService productImageService;
+
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createProducts(@Valid @RequestPart(value = "product") ProductDTO productDTO,
-                                                     @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnailImage,
-                                                     @RequestParam(value = "images", required = false) List<MultipartFile> images)
+                                            @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnailImage,
+                                            @RequestPart(value = "specifications", required = false) String specificationsJson,
+                                            @RequestParam(value = "images", required = false) List<MultipartFile> images)
             throws Exception {
 
         List<String> allowedExtensions = Arrays.asList("pdf", "jpg", "jpeg", "png",
@@ -120,7 +127,8 @@ public class ProductController {
             }
         }
 
-        Product createProduct = this.productService.createProduct(productDTO);
+
+        Product createProduct = this.productService.createProduct(productDTO, specificationsJson);
         return ResponseEntity.ok().body(ResProduct.convertToResProduct(createProduct));
 
 //        Product currentProduct = this.productService.createProduct(productDTO);
@@ -184,29 +192,6 @@ public class ProductController {
 
     }
 
-//    private String storeFile(MultipartFile file) throws IOException, StorageException {
-//        //lấy tên file gốc và dùng stringunits và cleanPath để loại bỏ ký tự thừa
-//        if(file.getOriginalFilename() == null){
-//            throw new StorageException("Invalid images format");
-//        }
-//        String filename = StringUtils.cleanPath(file.getOriginalFilename());
-//        //dùng UUID để tạo tên file là duy nhất
-//        String uniqueFilename = UUID.randomUUID().toString() + "_" + filename;
-//        Path uploadDir = Paths.get("uploads");
-//
-//        //kiểm tra thư mục đã tồn tại chưa và tạo
-//        if (!Files.exists(uploadDir)) {
-//            Files.createDirectories(uploadDir);
-//        }
-//
-//        // Đường dẫn đầy đủ đến file
-//        Path destination = Paths.get(uploadDir.toString(), uniqueFilename);
-//
-//        //Sao chép sang thư mục đích
-//        Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-//        return uniqueFilename;
-//
-//    }
 
     @GetMapping("/images/{imageName}")
     public ResponseEntity<?> viewImage(@PathVariable String imageName) {
@@ -228,32 +213,11 @@ public class ProductController {
         }
     }
 
-//    @GetMapping
-//    public ResponseEntity<ResultPagination> fetchAllProducts(
-//            @RequestParam(defaultValue = "") String keyword,
-//            @RequestParam(defaultValue = "0", name = "category_id") Long categoryId,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "12") int limit
-//    ){
-//
-//
-//        PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id").ascending());
-//
-//        Page<ResProduct> productPage = this.productService.getAllProducts(keyword, categoryId,pageRequest);
-//
-//        List<ResProduct> productList = productPage.getContent();
-//
-//        ResultPagination result = new ResultPagination();
-//        ResultPagination.Meta meta = new ResultPagination.Meta();
-//
-//        meta.setTotalPage(productPage.getTotalPages());
-//        meta.setTotalItems(productPage.getTotalElements());
-//
-//        result.setMeta(meta);
-//        result.setResult(productList);
-//
-//        return ResponseEntity.ok().body(result);
-//    }
+    @DeleteMapping("/images/{imageId}")
+    public void deleteImage(@PathVariable("imageId") Long imageId) throws IndvalidRuntimeException {
+        this.productImageService.deleteProductImage(imageId);
+        System.out.println(imageId);
+    }
 
     @GetMapping
     public ResponseEntity<ResultPagination> fetchAllProducts(
@@ -311,18 +275,13 @@ public class ProductController {
         return ResponseEntity.ok().body(result);
     }
 
-
-//    @PutMapping("/{id}")
-//    public ResponseEntity<ResProduct> updateProduct(@PathVariable("id") long id,@RequestBody ProductDTO productDTO){
-//        Product updatedProduct = this.productService.updateProduct(id, productDTO);
-//        return ResponseEntity.ok().body(ResProduct.convertToResProduct(updatedProduct));
-//    }
-
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateProduct(@PathVariable("id") long id,
                                                     @RequestPart(value = "product", required = false) UpdateProductDTO updateProductDTO,
+                                                    @RequestPart(value = "specifications", required = false) String specificationsJson,
                                                     @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnailImage,
-                                                    @RequestParam(value = "images", required = false) List<MultipartFile> images) throws Exception {
+                                                    @RequestParam(value = "images", required = false) List<MultipartFile> images) throws Exception
+    {
 
         Product currentProduct = this.productService.getProductById(id);
 
@@ -389,7 +348,18 @@ public class ProductController {
             updateProductDTO.setUrls(new ArrayList<>());
         }
 
-        Product updatedProduct = this.productService.updateProduct(id, updateProductDTO);
+        // Parse specifications
+        List<ProductSpecification> specifications = new ArrayList<>();
+        if (specificationsJson != null && !specificationsJson.isEmpty()) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            specifications = Arrays.asList(objectMapper.readValue(specificationsJson, ProductSpecification[].class));
+
+            for (ProductSpecification spec : specifications) {
+                spec.setProduct(currentProduct);  // currentProduct là Product đã lấy bằng id
+            }
+        }
+
+        Product updatedProduct = this.productService.updateProduct(id, updateProductDTO, specifications);
         return ResponseEntity.ok().body(ResProduct.convertToResProduct(updatedProduct));
     }
 
@@ -411,25 +381,25 @@ public class ProductController {
     }
 
 //    @PostMapping("/generatedatafake")
-    private ResponseEntity<String> generatedatafake() throws PostException, IndvalidRuntimeException {
-        Faker faker = new Faker();
-        for(int i = 0; i < 1000; i++){
-                    String productName = faker.commerce().productName();
-                    if(this.productService.existsByName(productName)){
-                        continue;
-                    }
-            ProductDTO productDTO = ProductDTO.builder()
-                    .name(productName)
-                    .price((float)faker.number().numberBetween(10, 90_000_000))
-                    .description(faker.lorem().sentence())
-                    .thumbnail("")
-                    .categoryId((long)faker.number().numberBetween(3, 5))
-                    .build();
-
-                    this.productService.createProduct(productDTO);
-        }
-        return ResponseEntity.ok().body("Successfully generate fake data");
-    }
+//    private ResponseEntity<String> generatedatafake() throws PostException, IndvalidRuntimeException {
+//        Faker faker = new Faker();
+//        for(int i = 0; i < 1000; i++){
+//                    String productName = faker.commerce().productName();
+//                    if(this.productService.existsByName(productName)){
+//                        continue;
+//                    }
+//            ProductDTO productDTO = ProductDTO.builder()
+//                    .name(productName)
+//                    .price((float)faker.number().numberBetween(10, 90_000_000))
+//                    .description(faker.lorem().sentence())
+//                    .thumbnail("")
+//                    .categoryId((long)faker.number().numberBetween(3, 5))
+//                    .build();
+//
+//                    this.productService.createProduct(productDTO);
+//        }
+//        return ResponseEntity.ok().body("Successfully generate fake data");
+//    }
 
     @GetMapping("/by-ids")
     public ResponseEntity<List<Product>> getProductsByIds(
