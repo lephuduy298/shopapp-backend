@@ -41,7 +41,8 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(
                                 String.format("%s/users/register", apiPrefix),
-                                String.format("%s/users/login", apiPrefix)
+                                String.format("%s/users/login", apiPrefix),
+                                String.format("%s/users/refresh", apiPrefix)
                                 )
                         .permitAll()
 
@@ -102,6 +103,10 @@ public class WebSecurityConfig {
 
                         .requestMatchers(GET,
                                 String.format("%s/dash-board/**", apiPrefix)).hasRole(Role.ADMIN)
+
+                        .requestMatchers(POST,
+                                String.format("%s/users/logout", apiPrefix)).permitAll()
+
 
                         .anyRequest().authenticated()
                 );

@@ -1,5 +1,6 @@
 package com.project.shopapp.controller;
 
+import com.project.shopapp.components.JwtTokenUtil;
 import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
@@ -7,27 +8,38 @@ import com.project.shopapp.dto.UserLoginDTO;
 import com.project.shopapp.dto.res.ResLogin;
 import com.project.shopapp.dto.res.ResRegister;
 import com.project.shopapp.dto.res.ResUser;
+import com.project.shopapp.error.IndvalidRuntimeException;
 import com.project.shopapp.error.PermissionDenyException;
 import com.project.shopapp.error.PostException;
 import com.project.shopapp.error.UserNotFoundException;
+import com.project.shopapp.models.Token;
 import com.project.shopapp.models.User;
 import com.project.shopapp.services.UserService;
 import com.project.shopapp.utils.MessageKeys;
+import io.jsonwebtoken.Claims;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("api/v1/users")
+@RequestMapping("${api.prefix}/users")
 @RequiredArgsConstructor
 public class UserController {
+
+    @Value("${jwt.refreshTokenExpiration}")
+    private long refreshTokenExpiration;
 
     private final UserService userService;
 
     private final LocalizationUtils localizationUtils;
+
+    private final JwtTokenUtil jwtTokenUtil;
 
     @PostMapping("/register")
     public ResponseEntity<ResRegister> createUser(@Valid @RequestBody UserDTO userDTO) throws PostException, PermissionDenyException {
@@ -47,22 +59,30 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<ResLogin> login (@Valid @RequestBody UserLoginDTO userLoginDTO){
         try {
-            String token = this.userService.login(userLoginDTO.getPhoneNumber(), userLoginDTO.getPassword(), userLoginDTO.getRoleId());
+            User currentUser = this.userService.login(userLoginDTO.getPhoneNumber(), userLoginDTO.getPassword(), userLoginDTO.getRoleId());
 
+            String accessToken = this.jwtTokenUtil.generateAccessToken(currentUser);
+
+            String refreshToken = this.jwtTokenUtil.generateRefreshToken(currentUser);
+
+            this.userService.updateRefreshTokenUser(currentUser, refreshToken);
 
             ResLogin resLogin = ResLogin.builder()
                     .message(localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_SUCCESSFULLY))
-                    .token(token)
+                    .token(accessToken)
                     .build();
 
-            return ResponseEntity.ok().body(resLogin);
+            ResponseCookie springCookie = ResponseCookie.from("refresh_token", refreshToken)
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(refreshTokenExpiration)
+                    .build();
 
-//        } catch (UserNotFoundException e) {
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-//                    ResLogin.builder()
-//                            .message(localizationUtils.getLocalizedMessage(MessageKeys.USER_NOT_FOUND, e.getMessage()))
-//                            .build()
-//            );
+            return  ResponseEntity
+                    .ok()
+                    .header(HttpHeaders.SET_COOKIE, springCookie.toString())
+                    .body(resLogin);
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ResLogin.builder()
@@ -97,6 +117,66 @@ public class UserController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
+    }
+
+    @GetMapping("/refresh")
+    public ResponseEntity<ResLogin> refreshToken(
+            @CookieValue(name = "refresh_token") String refresh_token
+    ) throws IndvalidRuntimeException {
+        Claims claims = this.jwtTokenUtil.checkValidRefreshToken(refresh_token);
+
+        User currentUser = this.userService.getUserByRefreshTokenAndPhoneNumber(refresh_token, claims.getSubject());
+
+        if(currentUser == null){
+            throw new IndvalidRuntimeException("Refresh Token không hợp lệ");
+        }
+
+
+        String accessToken = this.jwtTokenUtil.generateAccessToken(currentUser);
+
+        String newRefreshToken = this.jwtTokenUtil.generateRefreshToken(currentUser);
+
+        this.userService.updateRefreshTokenUser(currentUser, newRefreshToken);
+
+        ResLogin resLogin = ResLogin.builder()
+                .message(localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_SUCCESSFULLY))
+                .token(accessToken)
+                .build();
+
+        ResponseCookie springCookie = ResponseCookie.from("refresh_token", newRefreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(refreshTokenExpiration)
+                .build();
+
+        return  ResponseEntity
+                .ok()
+                .header(HttpHeaders.SET_COOKIE, springCookie.toString())
+                .body(resLogin);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logoutUser(
+            @CookieValue(name = "refresh_token") String token
+    ) throws Exception {
+
+        User user = this.userService.getUserDetailByToken(token);
+
+        ResponseCookie deleteSpringCookie = ResponseCookie
+                .from("refresh_token", null)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        this.userService.updateRefreshTokenUser(user, null);
+
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.SET_COOKIE, deleteSpringCookie.toString())
+                .body(null);
     }
 
 }

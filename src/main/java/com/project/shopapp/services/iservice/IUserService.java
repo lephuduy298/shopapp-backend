@@ -3,13 +3,16 @@ package com.project.shopapp.services.iservice;
 import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.error.PermissionDenyException;
+import com.project.shopapp.models.Token;
 import com.project.shopapp.models.User;
 
 public interface IUserService {
     User createUser(UserDTO userDTO) throws PermissionDenyException;
-    String login(String phoneNumber, String password, Long roleId);
+    User login(String phoneNumber, String password, Long roleId);
 
     User getUserDetailByToken(String extractedToken) throws Exception;
 
     User updateUser(Long userId, UpdateUserDTO updatedUserDTO) throws Exception;
+
+    void updateRefreshTokenUser(User currentUser, String refreshToken);
 }

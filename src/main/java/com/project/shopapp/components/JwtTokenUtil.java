@@ -21,14 +21,17 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class JwtTokenUtil {
 
-    @Value("${jwt.expiration}")
-    private long expiration;
+    @Value("${jwt.accessTokenExpiration}")
+    private long accessTokenExpiration;
+
+    @Value("${jwt.refreshTokenExpiration}")
+    private long refreshTokenExpiration;
 
     @Value("${jwt.secretKey}")
     private String secretKey;
 
 
-    public String generateToken(User userLogin) {
+    public String generateAccessToken(User userLogin) {
 
         //properties => claims
 //        List<String> listAuthority = new ArrayList<>();
@@ -40,12 +43,33 @@ public class JwtTokenUtil {
             String token = Jwts.builder()
                     .setClaims(claims)
                     .setSubject(userLogin.getPhoneNumber())
-                    .setExpiration(new Date(System.currentTimeMillis() + expiration * 1000L))
+                    .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiration * 1000L))
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                     .compact();
             return token;
         } catch (Exception e) {
-            throw new InvalidParameterException("Can't generate jwt token, error: " + e.getMessage());
+            throw new InvalidParameterException("Can't generate access jwt token, error: " + e.getMessage());
+        }
+    }
+
+    public String generateRefreshToken(User userLogin) {
+
+        //properties => claims
+//        List<String> listAuthority = new ArrayList<>();
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("phoneNumber", userLogin.getPhoneNumber());
+        claims.put("userId", userLogin.getId());
+
+        try {
+            String token = Jwts.builder()
+                    .setClaims(claims)
+                    .setSubject(userLogin.getPhoneNumber())
+                    .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpiration * 1000L))
+                    .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                    .compact();
+            return token;
+        } catch (Exception e) {
+            throw new InvalidParameterException("Can't generate refresh jwt token, error: " + e.getMessage());
         }
     }
 
@@ -80,6 +104,35 @@ public class JwtTokenUtil {
         String phoneNumber = this.extractPhoneNumber(token);
 
         return (phoneNumber.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    }
+
+    public Claims checkValidRefreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.trim().isEmpty()) {
+            throw new InvalidParameterException("Refresh token is missing or empty");
+        }
+
+        try {
+            Claims claims = extractAllClaims(refreshToken);
+
+            // Kiểm tra hạn sử dụng
+            Date expiration = claims.getExpiration();
+            if (expiration.before(new Date())) {
+                throw new InvalidParameterException("Refresh token has expired");
+            }
+
+            // Kiểm tra subject (phoneNumber)
+            String phoneNumber = claims.getSubject();
+            if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+                throw new InvalidParameterException("Invalid refresh token: phone number is missing");
+            }
+
+            return claims;
+
+            // Bạn có thể thêm các kiểm tra khác ở đây, ví dụ: kiểm tra userId tồn tại, token có trong DB, v.v.
+
+        } catch (Exception e) {
+            throw new InvalidParameterException("Invalid refresh token: ");
+        }
     }
 
 }

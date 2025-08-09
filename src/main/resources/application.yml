@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: shopapp
+  datasource:
+    url: ${DBMS_CONNECTION:jdbc:mysql://localhost:3306/shopappkma}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: lephuduy
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+      dialect: org.hibernate.dialect.MySQL8Dialect
+      format_sql: true
+#      ?useSSL=false&serverTimezone=UTC
+#  jpa:
+#    hibernate:
+#      ddl-auto: update
+#    show-sql: true
+#  datasource:
+#    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/jobhunterv2
+#    username: root
+#    password: lephuduy
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+api:
+  prefix: api/v1
+
+jwt:
+  accessTokenExpiration: 180 #1days of expiration
+  refreshTokenExpiration: 2592000 #1days of expiration
+  secretKey: ODcxODJlOGI4YTdhZWNlYzE4NmRhNzQwYzQ4ZmIxOTQzODMzZDcxOWQ2OGVlNTk5MjY0MTcxNTc3YTcyZmIzN2I0YmI4NmI1ZDU2NDU4YzUxZjI0MDMwM2E5MDI4YWU5YTIyMWQ5ZDNhODBhMmNhZjFkM2VlZWRhN2Y4ZWVlOTk=
+
+

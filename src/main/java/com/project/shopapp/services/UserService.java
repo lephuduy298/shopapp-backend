@@ -8,12 +8,14 @@ import com.project.shopapp.error.DataNotFoundException;
 import com.project.shopapp.error.PermissionDenyException;
 import com.project.shopapp.error.PostException;
 import com.project.shopapp.models.Role;
+import com.project.shopapp.models.Token;
 import com.project.shopapp.models.User;
 import com.project.shopapp.repositories.RoleRepository;
 import com.project.shopapp.repositories.UserRepository;
 import com.project.shopapp.services.iservice.IUserService;
 import com.project.shopapp.utils.MessageKeys;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,9 +23,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class UserService implements IUserService {
+
+    @Value("${jwt.accessTokenExpiration}")
+    private long accessTokenExpiration;
+
+    @Value("${jwt.refreshTokenExpiration}")
+    private long refreshTokenExpiration;
+
+    @Value("${jwt.secretKey}")
+    private String secretKey;
 
     private final UserRepository userRepository;
 
@@ -70,7 +83,7 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public String login(String phoneNumber, String password, Long roleId) {
+    public User login(String phoneNumber, String password, Long roleId) {
         //check exists user
         User currentUser = this.userRepository.findByPhoneNumber(phoneNumber)
                 .orElseThrow(() -> new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.WRONG_PHONE_PASSWORD)));
@@ -98,7 +111,7 @@ public class UserService implements IUserService {
 
         authenticationManager.authenticate(authenticationToken);
 
-        return jwtTokenUtil.generateToken(currentUser);
+        return currentUser;
     }
 
     @Override
@@ -158,4 +171,16 @@ public class UserService implements IUserService {
         return userRepository.save(existingUser);
     }
 
+    @Override
+    public void updateRefreshTokenUser(User currentUser, String refreshToken) {
+        if(currentUser != null){
+            currentUser.setRefreshToken(refreshToken);
+            this.userRepository.save(currentUser);
+
+        }
+    }
+
+    public User getUserByRefreshTokenAndPhoneNumber(String refreshToken, String subject) {
+        return this.userRepository.findByRefreshTokenAndPhoneNumber(refreshToken, subject);
+    }
 }

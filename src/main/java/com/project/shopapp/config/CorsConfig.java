@@ -9,9 +9,10 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("*")
+                .allowedOrigins("http://localhost:4200") // 🔁 frontend domain
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("authorization", "content-type", "x-auth-token")
-                .exposedHeaders("x-auth-token");
+                .exposedHeaders("x-auth-token", "Set-Cookie")
+                .allowCredentials(true); // ✅ giữ lại
     }
 }

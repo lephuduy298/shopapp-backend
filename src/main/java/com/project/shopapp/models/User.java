@@ -50,6 +50,9 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "google_account_id")
     private int googleAccountId;
 
+    @Column(columnDefinition = "MEDIUMTEXT", name = "refresh_token")
+    private  String refreshToken;
+
     @ManyToOne
     @JoinColumn(name = "role_id")
     private com.project.shopapp.models.Role role;
@@ -57,6 +60,7 @@ public class User extends BaseEntity implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<SimpleGrantedAuthority> authorityList = new ArrayList<>();
+
         authorityList.add(new SimpleGrantedAuthority("ROLE_" + this.getRole().getName().toUpperCase()));
         return authorityList;
     }

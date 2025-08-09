@@ -11,4 +11,5 @@ public class ResLogin {
     private String message;
 
     private String token;
+
 }
