@@ -57,6 +57,9 @@ public class User extends BaseEntity implements UserDetails {
     @JoinColumn(name = "role_id")
     private com.project.shopapp.models.Role role;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Cart cart;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<SimpleGrantedAuthority> authorityList = new ArrayList<>();

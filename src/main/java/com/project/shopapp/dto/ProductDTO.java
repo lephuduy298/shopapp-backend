@@ -18,6 +18,8 @@ import java.util.List;
 @Builder
 public class ProductDTO {
 
+    private Long id;
+
     @NotBlank(message = "Name is not empty")
     @Size(min = 3, max = 100, message = "Name must be between 3 and 100 characters")
     private String name;

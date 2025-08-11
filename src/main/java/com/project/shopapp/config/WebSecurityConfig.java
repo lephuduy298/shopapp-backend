@@ -107,6 +107,18 @@ public class WebSecurityConfig {
                         .requestMatchers(POST,
                                 String.format("%s/users/logout", apiPrefix)).permitAll()
 
+                        .requestMatchers(POST,
+                                String.format("%s/carts/**", apiPrefix)).permitAll()
+
+                        .requestMatchers(GET,
+                                String.format("%s/carts/**", apiPrefix)).permitAll()
+
+                        .requestMatchers(DELETE,
+                                String.format("%s/carts/**", apiPrefix)).permitAll()
+
+                        .requestMatchers(PUT,
+                                String.format("%s/carts/**", apiPrefix)).permitAll()
+
 
                         .anyRequest().authenticated()
                 );
