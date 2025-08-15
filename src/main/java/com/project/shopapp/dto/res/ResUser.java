@@ -3,6 +3,7 @@ package com.project.shopapp.dto.res;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Getter
@@ -35,6 +36,12 @@ public class ResUser {
     @JsonProperty("google_account_id")
     private int googleAccountId;
 
+    @JsonProperty("created_at")
+    private LocalDateTime createdAt;
+
+    @JsonProperty("updated_at")
+    private LocalDateTime updatedAt;
+
     @JsonProperty("role")
     private com.project.shopapp.models.Role role;
     public static ResUser convertToResUser(com.project.shopapp.models.User user) {
@@ -45,6 +52,8 @@ public class ResUser {
                 .address(user.getAddress())
                 .active(user.isActive())
                 .dateOfBirth(user.getDateOfBirth())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .facebookAccountId(user.getFacebookAccountId())
                 .googleAccountId(user.getGoogleAccountId())
                 .role(user.getRole())

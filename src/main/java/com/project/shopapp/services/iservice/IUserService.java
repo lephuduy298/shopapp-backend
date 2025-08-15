@@ -5,6 +5,11 @@ import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.error.PermissionDenyException;
 import com.project.shopapp.models.Token;
 import com.project.shopapp.models.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+
+import java.awt.print.Pageable;
+import java.util.List;
 
 public interface IUserService {
     User createUser(UserDTO userDTO) throws PermissionDenyException;
@@ -12,7 +17,15 @@ public interface IUserService {
 
     User getUserDetailByToken(String extractedToken) throws Exception;
 
-    User updateUser(Long userId, UpdateUserDTO updatedUserDTO) throws Exception;
+    User updateUser(Long userId, UpdateUserDTO updatedUserDTO, String roleUser) throws Exception;
 
     void updateRefreshTokenUser(User currentUser, String refreshToken);
+
+    User getUserById(Long userId) throws Exception;
+
+    Page<User> getAllUsers(Long roleId, String keyword, Boolean isActive, PageRequest pageRequest);
+
+    void deleteUser(Long userId) throws Exception;
+
+    void blockUser(Long id);
 }

@@ -16,6 +16,8 @@ import com.project.shopapp.services.iservice.IUserService;
 import com.project.shopapp.utils.MessageKeys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,7 +25,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.awt.print.Pageable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -128,15 +132,15 @@ public class UserService implements IUserService {
 
     @Transactional
     @Override
-    public User updateUser(Long userId, UpdateUserDTO updatedUserDTO) throws Exception {
+    public User updateUser(Long userId, UpdateUserDTO updatedUserDTO, String roleUser) throws DataNotFoundException, PostException {
         User existingUser = userRepository.findById(userId)
-                .orElseThrow(() -> new DataNotFoundException("User not found"));
+                .orElseThrow(() -> new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.USER_NOTFOUND)));
 
         // Check if the phone number is being changed and if it already exists for another user
         String newPhoneNumber = updatedUserDTO.getPhoneNumber();
         if (!existingUser.getPhoneNumber().equals(newPhoneNumber) &&
                 userRepository.existsByPhoneNumber(newPhoneNumber)) {
-            throw new Exception("Phone number already exists");
+            throw new DataNotFoundException("Phone number already exists");
         }
 
         // Update user information based on the DTO
@@ -158,6 +162,17 @@ public class UserService implements IUserService {
         if (updatedUserDTO.getGoogleAccountId() > 0) {
             existingUser.setGoogleAccountId(updatedUserDTO.getGoogleAccountId());
         }
+
+        //check current password
+        if(!roleUser.equals("admin")){
+            if(updatedUserDTO.getPassword() != null && !updatedUserDTO.getPassword().isEmpty()) {
+                String currentPassword = updatedUserDTO.getCurrentPassword();
+                if (currentPassword == null || !passwordEncoder.matches(currentPassword, existingUser.getPassword())) {
+                    throw new PostException(localizationUtils.getLocalizedMessage(MessageKeys.PASSWORD_NOT_MATCH));
+                }
+            }
+        }
+
 
         // Update the password if it is provided in the DTO
         if (updatedUserDTO.getPassword() != null
@@ -182,5 +197,45 @@ public class UserService implements IUserService {
 
     public User getUserByRefreshTokenAndPhoneNumber(String refreshToken, String subject) {
         return this.userRepository.findByRefreshTokenAndPhoneNumber(refreshToken, subject);
+    }
+
+    @Override
+    public User getUserById(Long id) {
+        return userRepository.findById(id).orElseThrow(() -> new DataNotFoundException("User not found"));
+    }
+
+    @Override
+    public Page<User> getAllUsers(Long roleId, String keyword, Boolean isActive, PageRequest pageRequest) {
+        return userRepository.findUserWithFilter(roleId, keyword, isActive, pageRequest);
+    }
+
+//    @Override
+//    public User updateUser(Long id, UpdateUserDTO updateUserDTO) {
+//        User existingUser = getUserById(id);
+//        if (updateUserDTO.getName() != null) {
+//            existingUser.setName(updateUserDTO.getName());
+//        }
+//        if (updateUserDTO.getEmail() != null) {
+//            existingUser.setEmail(updateUserDTO.getEmail());
+//        }
+//        // Additional fields can be updated here
+//        return userRepository.save(existingUser);
+//    }
+
+    @Override
+    public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new DataNotFoundException("User not found");
+        }
+        userRepository.deleteById(id);
+    }
+
+    @Override
+    public void blockUser(Long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.USER_NOTFOUND)));
+
+        user.setActive(!user.isActive());
+
+        this.userRepository.save(user);
     }
 }

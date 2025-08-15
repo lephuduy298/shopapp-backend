@@ -251,7 +251,7 @@ public class ProductController {
             }
         }
 
-        PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id").ascending());
+        PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id").descending());
 
         Page<ResProduct> productPage = this.productService.getAllProducts(
                 keyword,

@@ -119,6 +119,18 @@ public class WebSecurityConfig {
                         .requestMatchers(PUT,
                                 String.format("%s/carts/**", apiPrefix)).permitAll()
 
+                        .requestMatchers(GET,
+                                String.format("%s/users/{id}", apiPrefix)).permitAll()
+
+                        .requestMatchers(GET,
+                                String.format("%s/users", apiPrefix)).hasRole(Role.ADMIN)
+
+                        .requestMatchers(PUT,
+                                String.format("%s/users/{id}", apiPrefix)).permitAll()
+
+                        .requestMatchers(DELETE,
+                                String.format("%s/users/{id}", apiPrefix)).hasRole(Role.ADMIN)
+
 
                         .anyRequest().authenticated()
                 );

@@ -8,6 +8,7 @@ import com.project.shopapp.dto.UserLoginDTO;
 import com.project.shopapp.dto.res.ResLogin;
 import com.project.shopapp.dto.res.ResRegister;
 import com.project.shopapp.dto.res.ResUser;
+import com.project.shopapp.dto.res.ResultPagination;
 import com.project.shopapp.error.IndvalidRuntimeException;
 import com.project.shopapp.error.PermissionDenyException;
 import com.project.shopapp.error.PostException;
@@ -21,11 +22,17 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("${api.prefix}/users")
@@ -99,7 +106,7 @@ public class UserController {
         return ResponseEntity.ok().body(ResUser.convertToResUser(user));
     }
 
-    @PutMapping("/details/{userId}")
+    @PutMapping("/{userId}")
     public ResponseEntity<ResUser> updateUserDetails(
             @PathVariable Long userId,
             @RequestBody UpdateUserDTO updatedUserDTO,
@@ -109,10 +116,16 @@ public class UserController {
             String extractedToken = authorizationHeader.substring(7);
             User user = userService.getUserDetailByToken(extractedToken);
             // Ensure that the user making the request matches the user being updated
-            if (user.getId() != userId) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+
+            String roleUer = user.getRole().getName().toLowerCase();
+
+            if(!user.getRole().getName().toLowerCase().equals("admin")){
+                if (user.getId() != userId) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                }
             }
-            User updatedUser = userService.updateUser(userId, updatedUserDTO);
+
+            User updatedUser = userService.updateUser(userId, updatedUserDTO, roleUer);
             return ResponseEntity.ok(ResUser.convertToResUser(updatedUser));
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
@@ -131,6 +144,9 @@ public class UserController {
             throw new IndvalidRuntimeException("Refresh Token không hợp lệ");
         }
 
+        if(!currentUser.isActive()){
+            throw new IndvalidRuntimeException(localizationUtils.getLocalizedMessage(MessageKeys.USER_IS_LOCKED));
+        }
 
         String accessToken = this.jwtTokenUtil.generateAccessToken(currentUser);
 
@@ -177,6 +193,80 @@ public class UserController {
                 .ok()
                 .header(HttpHeaders.SET_COOKIE, deleteSpringCookie.toString())
                 .body(null);
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<ResUser> getUserById(@PathVariable Long userId,
+                                                @RequestHeader("Authorization") String authorizationHeader) throws Exception {
+
+        String extractedToken = authorizationHeader.substring(7);
+
+
+        User userFromToken = userService.getUserDetailByToken(extractedToken);
+        // Ensure that the user making the request matches the user being updated
+
+        String roleUer = userFromToken.getRole().getName().toLowerCase();
+
+        if(!roleUer.equals("admin")){
+            if (userFromToken.getId() != userId) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        }
+
+        User userFromId = userService.getUserById(userId);
+        ResUser resUser = ResUser.convertToResUser(userFromId);
+        return ResponseEntity.ok(resUser);
+    }
+
+    @GetMapping
+    public ResponseEntity<ResultPagination> getAllUsers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(name = "role_id", required = false) Long roleId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int limit,
+            @RequestParam(name = "is_active", required = false) Boolean isActive
+    ) {
+
+        PageRequest pageRequest = PageRequest.of(page > 0 ? page - 1 : page, limit, Sort.by("id").descending());
+
+        if (keyword != null && keyword.trim().isEmpty()) {
+            keyword = null;
+        }
+
+        Page<User> users = userService.getAllUsers(roleId, keyword, isActive, pageRequest);
+
+        List<ResUser> resUsers = users.getContent().stream()
+                .map(ResUser::convertToResUser)
+                .collect(Collectors.toList());
+
+        ResultPagination result = new ResultPagination();
+        ResultPagination.Meta meta = new ResultPagination.Meta();
+
+        result.setResult(resUsers);
+        meta.setTotalItems(users.getTotalElements());
+        meta.setTotalPage(users.getTotalPages());
+
+        result.setMeta(meta);
+
+        return ResponseEntity.ok(result);
+    }
+
+//    @PutMapping("/{id}")
+//    public ResponseEntity<ResUser> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserDTO updateUserDTO) throws Exception {
+//        User updatedUser = userService.updateUser(id, updateUserDTO);
+//        ResUser resUser = ResUser.convertToResUser(updatedUser);
+//        return ResponseEntity.ok(resUser);
+//    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+    @DeleteMapping("/block/{id}")
+    public ResponseEntity<Void> blockAndActiveUser(@PathVariable Long id) {
+        userService.blockUser(id);
+        return ResponseEntity.noContent().build();
     }
 
 }
