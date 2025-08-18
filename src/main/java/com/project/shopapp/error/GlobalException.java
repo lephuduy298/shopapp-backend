@@ -22,7 +22,10 @@ public class GlobalException {
 
     @ExceptionHandler(value = {
             Exception.class,
-            PostException.class
+            PostException.class,
+            DataNotFoundException.class,
+            UserNotFoundException.class,
+            IndvalidRuntimeException.class
     })
 //        @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<RestResponse<Object>> handleException(Exception ex) {

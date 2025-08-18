@@ -34,6 +34,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+//import static jdk.internal.joptsimple.internal.Messages.message;
+
 @RestController
 @RequestMapping("${api.prefix}/users")
 @RequiredArgsConstructor
@@ -111,8 +113,7 @@ public class UserController {
             @PathVariable Long userId,
             @RequestBody UpdateUserDTO updatedUserDTO,
             @RequestHeader("Authorization") String authorizationHeader
-    ) {
-        try {
+    ) throws Exception {
             String extractedToken = authorizationHeader.substring(7);
             User user = userService.getUserDetailByToken(extractedToken);
             // Ensure that the user making the request matches the user being updated
@@ -127,9 +128,6 @@ public class UserController {
 
             User updatedUser = userService.updateUser(userId, updatedUserDTO, roleUer);
             return ResponseEntity.ok(ResUser.convertToResUser(updatedUser));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
     }
 
     @GetMapping("/refresh")

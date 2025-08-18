@@ -173,6 +173,12 @@ public class UserService implements IUserService {
             }
         }
 
+        //check password match
+        if (updatedUserDTO.getPassword() != null && !updatedUserDTO.getPassword().isEmpty()
+                && !updatedUserDTO.getPassword().equals(updatedUserDTO.getRetypePassword())) {
+            throw new PostException(localizationUtils.getLocalizedMessage(MessageKeys.PASSWORD_NOT_MATCH));
+        }
+
 
         // Update the password if it is provided in the DTO
         if (updatedUserDTO.getPassword() != null

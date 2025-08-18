@@ -24,6 +24,11 @@ public class MessageKeys {
     public static final String PRODUCT_ID_NOT_EXISTS = "product.id_not_exist";
     public static final String DELETE_PRODUCT_SUCCESSFULLY = "product.delete_product.delete_successfully";
 
+    public static final String UPDATE_USER_SUCCESSFULLY = "user.update_user.update_successfully";
+    public static final String UPDATE_USER_FAILED = "user.update_user.update_failed";
+    public static final String CREATE_USER_SUCCESSFULLY = "user.create_user.create_successfully";
+    public static final String CREATE_USER_FAILED = "user.create_user.create_failed";
+    public static final String USER_NOT_FOUND = "user.update_user.user_not_found";
 
 
 
