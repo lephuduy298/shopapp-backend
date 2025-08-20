@@ -29,6 +29,7 @@ public class CartService implements ICartService {
     }
 
     @Override
+    @Transactional
     public Cart createCart(Long userId) {
         User user = userRepository.findById(userId).orElseThrow();
         Cart existingCart = cartRepository.findByUserId(userId);
@@ -41,6 +42,7 @@ public class CartService implements ICartService {
     }
 
     @Override
+    @Transactional
     public void deleteCart(Long cartId) {
         if (!cartRepository.existsById(cartId)) {
             throw new IllegalArgumentException("Cart not found with id: " + cartId);
@@ -71,6 +73,7 @@ public class CartService implements ICartService {
     }
 
     @Override
+    @Transactional
     public ResCartItem updateCartItem(Long cartItemId, int quantity) {
         CartItem cartItem = cartItemRepository.findById(cartItemId).orElseThrow();
         cartItem.setQuantity(quantity);
@@ -79,6 +82,7 @@ public class CartService implements ICartService {
     }
 
     @Override
+    @Transactional
     public void removeCartItem(Long cartItemId) {
         cartItemRepository.deleteById(cartItemId);
     }

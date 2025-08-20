@@ -28,4 +28,6 @@ public interface IUserService {
     void deleteUser(Long userId) throws Exception;
 
     void blockUser(Long id);
+
+//    User getUserByCommentId(Long commentId);
 }

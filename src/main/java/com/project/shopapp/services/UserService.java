@@ -236,6 +236,11 @@ public class UserService implements IUserService {
         userRepository.deleteById(id);
     }
 
+//    @Override
+//    public User getUserByCommentId(Long commentId) {
+//        return userRepository.findUserByCommentId(commentId);
+//    }
+
     @Override
     public void blockUser(Long id) {
         User user = userRepository.findById(id).orElseThrow(() -> new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.USER_NOTFOUND)));

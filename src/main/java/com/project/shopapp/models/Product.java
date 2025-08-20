@@ -1,6 +1,7 @@
  package com.project.shopapp.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -42,4 +43,8 @@ public class Product extends BaseEntity{
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<ProductSpecification> specifications;
+
+     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+     @JsonManagedReference
+     private List<ProductComment> comments = new ArrayList<>();
 }
