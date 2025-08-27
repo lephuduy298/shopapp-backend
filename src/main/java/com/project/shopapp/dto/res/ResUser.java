@@ -3,6 +3,7 @@ package com.project.shopapp.dto.res;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.Date;
 
@@ -18,6 +19,8 @@ public class ResUser {
     @JsonProperty("fullname")
     private String fullName;
 
+    private String email;
+
     @JsonProperty("phone_number")
     private String phoneNumber;
 
@@ -31,10 +34,10 @@ public class ResUser {
     private Date dateOfBirth;
 
     @JsonProperty("facebook_account_id")
-    private int facebookAccountId;
+    private String facebookAccountId;
 
     @JsonProperty("google_account_id")
-    private int googleAccountId;
+    private String googleAccountId;
 
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
@@ -50,6 +53,7 @@ public class ResUser {
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
                 .address(user.getAddress())
+                .email(user.getEmail())
                 .active(user.isActive())
                 .dateOfBirth(user.getDateOfBirth())
                 .createdAt(user.getCreatedAt())

@@ -37,12 +37,13 @@ public class JwtTokenUtil {
 //        List<String> listAuthority = new ArrayList<>();
         Map<String, Object> claims = new HashMap<>();
         claims.put("phoneNumber", userLogin.getPhoneNumber());
+        claims.put("email", userLogin.getEmail());
         claims.put("userId", userLogin.getId());
 
         try {
             String token = Jwts.builder()
                     .setClaims(claims)
-                    .setSubject(userLogin.getPhoneNumber())
+                    .setSubject(!userLogin.getPhoneNumber().isBlank() ? userLogin.getPhoneNumber() : userLogin.getEmail())
                     .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiration * 1000L))
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                     .compact();
@@ -78,7 +79,7 @@ public class JwtTokenUtil {
         return Keys.hmacShaKeyFor(bytes);
     }
 
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSignInKey())
                 .build()
@@ -98,6 +99,10 @@ public class JwtTokenUtil {
 
     public String extractPhoneNumber(String token){
         return this.extractClaim(token, Claims::getSubject);
+    }
+
+    public String extractEmail(String token){
+        return this.extractClaim(token, claims -> claims.get("email", String.class));
     }
 
     public boolean isValidToken(String token, UserDetails userDetails){

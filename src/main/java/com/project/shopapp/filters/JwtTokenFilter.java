@@ -33,7 +33,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     private String apiPrefix;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,             HttpServletResponse response,
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
             if(isByPassToken(request)){
@@ -48,7 +48,13 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             }
 
             final String token = authHeader.substring(7);
-            final String phoneNumber = this.jwtTokenUtil.extractPhoneNumber(token);
+            String phoneNumber;
+            if(this.jwtTokenUtil.extractPhoneNumber(token) != null){
+                phoneNumber = this.jwtTokenUtil.extractPhoneNumber(token);
+            }
+            else {
+                phoneNumber = this.jwtTokenUtil.extractEmail(token);
+            }
             if(phoneNumber != null && SecurityContextHolder.getContext().getAuthentication() == null){
                 User userDetails = (User) this.userDetailsService.loadUserByUsername(phoneNumber);
                 if(jwtTokenUtil.isValidToken(token, userDetails)){
@@ -77,7 +83,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/users/login", apiPrefix), "POST"),
                 Pair.of(String.format("%s/roles", apiPrefix), "GET"),
                 Pair.of(String.format("%s/users/refresh", apiPrefix), "GET"),
-                Pair.of(String.format("%s/comments", apiPrefix), "GET")
+                Pair.of(String.format("%s/comments", apiPrefix), "GET"),
+                Pair.of(String.format("%s/users/auth", apiPrefix), "GET")
                 );
 
         String requestPath = request.getServletPath();

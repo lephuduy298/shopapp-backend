@@ -2,6 +2,7 @@ package com.project.shopapp.services.iservice;
 
 import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
+import com.project.shopapp.dto.UserLoginDTO;
 import com.project.shopapp.error.PermissionDenyException;
 import com.project.shopapp.models.Token;
 import com.project.shopapp.models.User;
@@ -28,6 +29,10 @@ public interface IUserService {
     void deleteUser(Long userId) throws Exception;
 
     void blockUser(Long id);
+
+    User findByEmail(String email);
+
+//    User createUserFromSocial(User user);
 
 //    User getUserByCommentId(Long commentId);
 }

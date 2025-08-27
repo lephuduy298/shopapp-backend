@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -30,8 +31,11 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "fullname", length = 100)
     private String fullName;
 
-    @Column(name = "phone_number", length = 10, nullable = false)
+    @Column(name = "phone_number", length = 255, nullable = false)
     private String phoneNumber;
+
+    @Column
+    private String email;
 
     @Column(name = "address", length = 200)
     private String address;
@@ -46,10 +50,10 @@ public class User extends BaseEntity implements UserDetails {
     private Date dateOfBirth;
 
     @Column(name = "facebook_account_id")
-    private int facebookAccountId;
+    private String facebookAccountId;
 
     @Column(name = "google_account_id")
-    private int googleAccountId;
+    private String googleAccountId;
 
     @Column(columnDefinition = "MEDIUMTEXT", name = "refresh_token")
     private  String refreshToken;
@@ -75,7 +79,8 @@ public class User extends BaseEntity implements UserDetails {
 
     @Override
     public String getUsername() {
-        return phoneNumber;
+        // Ưu tiên phoneNumber, nếu không có thì trả về email
+        return (phoneNumber != null && !phoneNumber.isEmpty()) ? phoneNumber : email;
     }
 
     @Override

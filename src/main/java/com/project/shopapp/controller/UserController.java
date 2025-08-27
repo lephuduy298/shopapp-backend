@@ -15,9 +15,12 @@ import com.project.shopapp.error.PostException;
 import com.project.shopapp.error.UserNotFoundException;
 import com.project.shopapp.models.Token;
 import com.project.shopapp.models.User;
+import com.project.shopapp.services.AuthService;
 import com.project.shopapp.services.UserService;
 import com.project.shopapp.utils.MessageKeys;
 import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
@@ -31,7 +34,10 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 //import static jdk.internal.joptsimple.internal.Messages.message;
@@ -49,6 +55,8 @@ public class UserController {
     private final LocalizationUtils localizationUtils;
 
     private final JwtTokenUtil jwtTokenUtil;
+
+    private final AuthService authService;
 
     @PostMapping("/register")
     public ResponseEntity<ResRegister> createUser(@Valid @RequestBody UserDTO userDTO) throws PostException, PermissionDenyException {
@@ -267,4 +275,71 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/auth/social-login")
+    public ResponseEntity<String> socialLogin(
+            @RequestParam("login_type") String loginType
+    ) {
+         loginType = loginType.toLowerCase();
+        String url = this.authService.generateAuthUrl(loginType);
+        return ResponseEntity.ok(url);
+    }
+
+    @GetMapping("/auth/social/callback")
+    public ResponseEntity<?> callback(
+            @RequestParam("code") String code,
+            @RequestParam("login_type") String loginType,
+            HttpServletRequest request
+    ) throws IOException, PermissionDenyException {
+        Map<String, Object> userInfo = this.authService.authenticateAndFetchProfile(code, loginType);
+        if (loginType.equals("google")) {
+            String email = (String) userInfo.get("email");
+            String name = (String) userInfo.get("name");
+            String googleId = userInfo.get("sub").toString();
+
+            if (email == null || email.isEmpty()) {
+                return ResponseEntity.badRequest().body("Không lấy được email từ Google");
+            }
+            // Tìm user theo email
+            User user = this.userService.findByEmail(email);
+            if (user == null) {
+                // Tạo mới user
+                UserDTO userDTO = UserDTO.builder()
+                        .fullName(name)
+                        .phoneNumber("") // Google không trả về, có thể để rỗng hoặc sinh số ảo
+                        .email(email)
+                        .address("") // Google không trả về, có thể để rỗng
+                        .password("") // Đăng nhập Google không cần password
+                        .retypePassword("")
+                        .dateOfBirth(null) // Google không trả về, có thể để null
+                        .facebookAccountId("")
+                        .googleAccountId(googleId)
+                        .roleId(1L) // Gán role mặc định cho user social
+                        .build();
+                user = this.userService.createUser(userDTO);
+            }
+            // Đăng nhập: tạo token cho user đăng nhập bằng Google
+            String accessToken = jwtTokenUtil.generateAccessToken(user);
+            String refreshToken = jwtTokenUtil.generateRefreshToken(user);
+            userService.updateRefreshTokenUser(user, refreshToken);
+
+            ResLogin resLogin = ResLogin.builder()
+                    .message("Đăng nhập thành công với google")
+                    .token(accessToken)
+                    .build();
+
+            ResponseCookie springCookie = ResponseCookie.from("refresh_token", refreshToken)
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(refreshTokenExpiration)
+                    .build();
+
+            return ResponseEntity
+                    .ok()
+                    .header(HttpHeaders.SET_COOKIE, springCookie.toString())
+                    .body(resLogin);
+        }
+        // ...logic cho các mạng xã hội khác nếu cần...
+        return ResponseEntity.badRequest().body("Login type không hỗ trợ");
+    }
 }

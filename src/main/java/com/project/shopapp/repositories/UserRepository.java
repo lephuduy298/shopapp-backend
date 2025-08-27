@@ -14,6 +14,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByPhoneNumber(String phoneNumber);
     Optional<User> findByPhoneNumber(String phoneNumber);
 
+//    Optional<User> findByEmail(String phoneNumber);
+
     User findByRefreshTokenAndPhoneNumber(String refreshToken, String subject);
     //SELECT * FROM users WHERE phoneNumber=?
 
@@ -36,6 +38,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
                                   @Param("keyword") String keyword,
                                   @Param("isActive") Boolean isActive,
                                   Pageable pageable);
+
+    User findByEmail(String email);
+
 
 
 //    User findUserByCommentId(Long commentId);

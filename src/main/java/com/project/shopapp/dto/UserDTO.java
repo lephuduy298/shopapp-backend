@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.math.BigInteger;
 import java.util.Date;
 
 @Getter
@@ -21,6 +22,8 @@ public class UserDTO {
     @NotBlank(message = "Phone number is required")
     private String phoneNumber;
 
+    private String email;
+
     private String address;
 
     @NotBlank(message = "Password cannot be blank")
@@ -33,10 +36,10 @@ public class UserDTO {
     private Date dateOfBirth;
 
     @JsonProperty("facebook_account_id")
-    private int facebookAccountId;
+    private String facebookAccountId;
 
     @JsonProperty("google_account_id")
-    private int googleAccountId;
+    private String googleAccountId;
 
     @NotNull(message = "Role ID is required")
     @JsonProperty("role_id")

@@ -3,6 +3,7 @@ package com.project.shopapp.dto.res;
 import com.project.shopapp.models.User;
 import lombok.*;
 
+import java.math.BigInteger;
 import java.util.Date;
 
 @Getter
@@ -33,9 +34,9 @@ public class ResRegister {
 
         private Date dateOfBirth;
 
-        private int facebookAccountId;
+        private String facebookAccountId;
 
-        private int googleAccountId;
+        private String  googleAccountId;
 
         private String role;
 

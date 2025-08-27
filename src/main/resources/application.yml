@@ -29,6 +29,17 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 519202863105-fl1iv02c1cl8mdo6hqfdhoaejhbkg9dn.apps.googleusercontent.com
+            client-secret: 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
+            redirect-uri: http://localhost:4200/auth/google/callback
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+
 api:
   prefix: api/v1
 

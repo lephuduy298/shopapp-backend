@@ -4,6 +4,7 @@ import com.project.shopapp.components.JwtTokenUtil;
 import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
+import com.project.shopapp.dto.UserLoginDTO;
 import com.project.shopapp.error.DataNotFoundException;
 import com.project.shopapp.error.PermissionDenyException;
 import com.project.shopapp.error.PostException;
@@ -14,6 +15,7 @@ import com.project.shopapp.repositories.RoleRepository;
 import com.project.shopapp.repositories.UserRepository;
 import com.project.shopapp.services.iservice.IUserService;
 import com.project.shopapp.utils.MessageKeys;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -57,9 +59,17 @@ public class UserService implements IUserService {
     @Transactional
     @Override
     public User createUser(UserDTO userDTO) throws PermissionDenyException {
-        if(this.userRepository.existsByPhoneNumber(userDTO.getPhoneNumber())){
+        // Nếu là đăng nhập social (Google/Facebook) thì bỏ qua kiểm tra trùng phoneNumber nếu phoneNumber rỗng
+        boolean isSocial = (userDTO.getGoogleAccountId() != null && !userDTO.getGoogleAccountId().isBlank()) ||
+                           (userDTO.getFacebookAccountId() != null && !userDTO.getFacebookAccountId().isBlank());
+        if(!isSocial && this.userRepository.existsByPhoneNumber(userDTO.getPhoneNumber())){
             throw new RuntimeException(localizationUtils.getLocalizedMessage(MessageKeys.PHONE_ALREADY_EXISTED, userDTO.getPhoneNumber()));
         }
+
+        if(userDTO.getRoleId() == null){
+            userDTO.setRoleId(1L);
+        }
+
         Role role = this.roleRepository.findById(userDTO.getRoleId()).orElseThrow(() -> new RuntimeException(localizationUtils.getLocalizedMessage(MessageKeys.ROLE_DOES_NOT_EXISTS)));
         if(role.getName().toUpperCase().equals(Role.ADMIN)){
             throw new PermissionDenyException(localizationUtils.getLocalizedMessage(MessageKeys.ADMIN_ROLE_NOT_AVAILABLE));
@@ -72,19 +82,27 @@ public class UserService implements IUserService {
                 .dateOfBirth(userDTO.getDateOfBirth())
                 .facebookAccountId(userDTO.getFacebookAccountId())
                 .googleAccountId(userDTO.getGoogleAccountId())
+                .email(userDTO.getEmail())
                 .build();
-//        Role role = null;
         user.setRole(role);
         user.setActive(true);
 
-        if(user.getFacebookAccountId() == 0 && user.getGoogleAccountId() == 0){
+        if (!isSocial) {
             String password = userDTO.getPassword();
-            String passwordEncoder = this.passwordEncoder.encode(password);
-            user.setPassword(passwordEncoder);
+            String encodedPassword = this.passwordEncoder.encode(password);
+            user.setPassword(encodedPassword);
+        } else {
+            user.setPassword(""); // Social login không cần password
+//            user.setPhoneNumber(userDTO.getEmail());
         }
 
         return this.userRepository.save(user);
     }
+
+//    @Override
+//    public User createUserFromSocial(User user) {
+//        return null;
+//    }
 
     @Override
     public User login(String phoneNumber, String password, Long roleId) {
@@ -93,7 +111,8 @@ public class UserService implements IUserService {
                 .orElseThrow(() -> new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.WRONG_PHONE_PASSWORD)));
 
         //check password
-        if(currentUser.getFacebookAccountId() == 0 && currentUser.getGoogleAccountId() == 0){
+        if ((currentUser.getFacebookAccountId() == null || currentUser.getFacebookAccountId().isBlank())
+                && (currentUser.getGoogleAccountId() == null || currentUser.getGoogleAccountId().isBlank())) {
             if(!passwordEncoder.matches(password, currentUser.getPassword())){
                 throw new BadCredentialsException(localizationUtils.getLocalizedMessage(MessageKeys.WRONG_PHONE_PASSWORD));
             }
@@ -104,6 +123,8 @@ public class UserService implements IUserService {
         if(!roleId.equals(currentUser.getRole().getId())){
             throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.ROLE_DOES_NOT_EXISTS));
         }
+
+
 
         if(!currentUser.isActive()) {
             throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.USER_IS_LOCKED));
@@ -124,9 +145,23 @@ public class UserService implements IUserService {
             throw new Exception("Token is expired");
         }
 
-        String phoneNumber = this.jwtTokenUtil.extractPhoneNumber(extractedToken);
+        Claims claims = this.jwtTokenUtil.extractAllClaims(extractedToken);
 
-       return this.userRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new DataNotFoundException("User not found"));
+        String phoneNumber = claims.getSubject();
+        String email = claims.get("email", String.class);
+
+        // Nếu phoneNumber là email (chứa '@'), thì tìm theo email
+        if (phoneNumber != null && phoneNumber.contains("@")) {
+            return this.userRepository.findByEmail(phoneNumber);
+        } else if (phoneNumber != null && !phoneNumber.isEmpty()) {
+            return this.userRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new DataNotFoundException("User not found"));
+        } else if (email != null && !email.isEmpty()) {
+            return this.userRepository.findByEmail(email);
+        } else {
+            throw new Exception("Invalid token: missing subject");
+        }
+
+//       return this.userRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new DataNotFoundException("User not found"));
 
     }
 
@@ -156,12 +191,12 @@ public class UserService implements IUserService {
         if (updatedUserDTO.getDateOfBirth() != null) {
             existingUser.setDateOfBirth(updatedUserDTO.getDateOfBirth());
         }
-        if (updatedUserDTO.getFacebookAccountId() > 0) {
-            existingUser.setFacebookAccountId(updatedUserDTO.getFacebookAccountId());
-        }
-        if (updatedUserDTO.getGoogleAccountId() > 0) {
-            existingUser.setGoogleAccountId(updatedUserDTO.getGoogleAccountId());
-        }
+//        if (updatedUserDTO.getFacebookAccountId() > 0) {
+//            existingUser.setFacebookAccountId(updatedUserDTO.getFacebookAccountId());
+//        }
+//        if (updatedUserDTO.getGoogleAccountId() > 0) {
+//            existingUser.setGoogleAccountId(updatedUserDTO.getGoogleAccountId());
+//        }
 
         //check current password
         if(!roleUser.equals("admin")){
@@ -249,4 +284,11 @@ public class UserService implements IUserService {
 
         this.userRepository.save(user);
     }
+
+    @Override
+    public User findByEmail(String email) {
+        return this.userRepository.findByEmail(email);
+    }
+
+
 }
