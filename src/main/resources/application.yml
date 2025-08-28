@@ -40,6 +40,12 @@ spring:
             redirect-uri: http://localhost:4200/auth/google/callback
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
 
+          facebook:
+            client-id: 1703987826962653
+            client-secret: e4259ac36576bc483e32abce951d2547
+            redirect-uri: http://localhost:4200/auth/facebook/callback
+            user-info-uri: https://graph.facebook.com/me?fields=id,name,picture
+            token-uri: https://graph.facebook.com/oauth/access_token
 api:
   prefix: api/v1
 

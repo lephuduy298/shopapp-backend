@@ -16,7 +16,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 //    Optional<User> findByEmail(String phoneNumber);
 
-    User findByRefreshTokenAndPhoneNumber(String refreshToken, String subject);
+    User findByRefreshTokenAndId(String refreshToken, Long subject);
     //SELECT * FROM users WHERE phoneNumber=?
 
     Optional<User> findById(Long id);
@@ -41,6 +41,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     User findByEmail(String email);
 
+    User findByFacebookAccountId(String facebookId);
+
+    User findByGoogleAccountId(String googleId);
 
 
 //    User findUserByCommentId(Long commentId);

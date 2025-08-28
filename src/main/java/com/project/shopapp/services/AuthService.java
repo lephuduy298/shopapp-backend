@@ -32,6 +32,17 @@ public class AuthService {
     @Value("${spring.security.oauth2.client.registration.google.client-secret}")
     private String googleClientSecret;
 
+    @Value("${spring.security.oauth2.client.registration.facebook.client-id}")
+    private String facebookClientId;
+
+    @Value("${spring.security.oauth2.client.registration.facebook.client-secret}")
+    private String facebookClientSecret;
+
+    @Value("${spring.security.oauth2.client.registration.facebook.redirect-uri}")
+    private String facebookRedirectUri;
+
+
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     public String generateAuthUrl(String loginType) {
@@ -51,6 +62,23 @@ public class AuthService {
                     URLEncoder.encode(state, StandardCharsets.UTF_8)
             );
         }
+        else if ("facebook".equalsIgnoreCase(loginType)) {
+            String baseUrl = "https://www.facebook.com/v15.0/dialog/oauth";
+            String responseType = "code";
+            String scope = "public_profile";
+            String state = UUID.randomUUID().toString();
+
+            return String.format(
+                    "%s?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s&state=%s",
+                    baseUrl,
+                    facebookClientId,
+                    facebookRedirectUri,
+                    responseType,
+                    URLEncoder.encode(scope, StandardCharsets.UTF_8),
+                    URLEncoder.encode(state, StandardCharsets.UTF_8)
+            );
+        }
+
         return null;
     }
 
@@ -85,8 +113,33 @@ public class AuthService {
                         new TypeReference<Map<String, Object>>() {}
                 );
             case "facebook":
-                // TODO: Implement Facebook login
-                return new HashMap<>();
+                // Bước 1: Đổi code lấy access token
+                String facebookTokenUri = "https://graph.facebook.com/v20.0/oauth/access_token"
+                        + "?client_id=" + facebookClientId
+                        + "&redirect_uri=" + facebookRedirectUri
+                        + "&client_secret=" + facebookClientSecret
+                        + "&code=" + code;
+
+                try {
+                    ResponseEntity<String> response = restTemplate.getForEntity(facebookTokenUri, String.class);
+                    System.out.println("Facebook token response: " + response.getStatusCode() + " - " + response.getBody());
+                    Map<String, Object> facebookTokenResponse = new ObjectMapper().readValue(
+                            response.getBody(),
+                            new TypeReference<Map<String, Object>>() {}
+                    );
+                    accessToken = (String) facebookTokenResponse.get("access_token");
+                    String facebookUserInfoUri = "https://graph.facebook.com/me?fields=id,name,picture&access_token=" + accessToken;
+                    return new ObjectMapper().readValue(
+                            restTemplate.getForEntity(facebookUserInfoUri, String.class).getBody(),
+                            new TypeReference<Map<String, Object>>() {}
+                    );
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                // Bước 2: Gọi API lấy thông tin user từ Facebook (không dùng Authorization header)
+
+
             default:
                 return new HashMap<>();
         }

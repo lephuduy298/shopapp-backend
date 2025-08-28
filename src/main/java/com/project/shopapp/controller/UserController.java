@@ -144,7 +144,7 @@ public class UserController {
     ) throws IndvalidRuntimeException {
         Claims claims = this.jwtTokenUtil.checkValidRefreshToken(refresh_token);
 
-        User currentUser = this.userService.getUserByRefreshTokenAndPhoneNumber(refresh_token, claims.getSubject());
+        User currentUser = this.userService.getUserByRefreshTokenAndId(refresh_token, Long.valueOf(claims.getSubject()));
 
         if(currentUser == null){
             throw new IndvalidRuntimeException("Refresh Token không hợp lệ");
@@ -291,55 +291,75 @@ public class UserController {
             HttpServletRequest request
     ) throws IOException, PermissionDenyException {
         Map<String, Object> userInfo = this.authService.authenticateAndFetchProfile(code, loginType);
-        if (loginType.equals("google")) {
-            String email = (String) userInfo.get("email");
-            String name = (String) userInfo.get("name");
-            String googleId = userInfo.get("sub").toString();
+
+        String email = null;
+        String name = null;
+        String googleId = "";
+        String facebookId = "";
+
+        if ("google".equalsIgnoreCase(loginType)) {
+            email = (String) userInfo.get("email");
+            name = (String) userInfo.get("name");
+            googleId = userInfo.get("sub").toString();
 
             if (email == null || email.isEmpty()) {
                 return ResponseEntity.badRequest().body("Không lấy được email từ Google");
             }
-            // Tìm user theo email
-            User user = this.userService.findByEmail(email);
-            if (user == null) {
-                // Tạo mới user
-                UserDTO userDTO = UserDTO.builder()
-                        .fullName(name)
-                        .phoneNumber("") // Google không trả về, có thể để rỗng hoặc sinh số ảo
-                        .email(email)
-                        .address("") // Google không trả về, có thể để rỗng
-                        .password("") // Đăng nhập Google không cần password
-                        .retypePassword("")
-                        .dateOfBirth(null) // Google không trả về, có thể để null
-                        .facebookAccountId("")
-                        .googleAccountId(googleId)
-                        .roleId(1L) // Gán role mặc định cho user social
-                        .build();
-                user = this.userService.createUser(userDTO);
-            }
-            // Đăng nhập: tạo token cho user đăng nhập bằng Google
-            String accessToken = jwtTokenUtil.generateAccessToken(user);
-            String refreshToken = jwtTokenUtil.generateRefreshToken(user);
-            userService.updateRefreshTokenUser(user, refreshToken);
+        } else if ("facebook".equalsIgnoreCase(loginType)) {
+            email = (String) userInfo.get("email"); // có thể null
+            name = (String) userInfo.get("name");
+            facebookId = userInfo.get("id").toString();
 
-            ResLogin resLogin = ResLogin.builder()
-                    .message("Đăng nhập thành công với google")
-                    .token(accessToken)
-                    .build();
-
-            ResponseCookie springCookie = ResponseCookie.from("refresh_token", refreshToken)
-                    .httpOnly(true)
-                    .secure(true)
-                    .path("/")
-                    .maxAge(refreshTokenExpiration)
-                    .build();
-
-            return ResponseEntity
-                    .ok()
-                    .header(HttpHeaders.SET_COOKIE, springCookie.toString())
-                    .body(resLogin);
+        } else {
+            return ResponseEntity.badRequest().body("Login type không hỗ trợ");
         }
-        // ...logic cho các mạng xã hội khác nếu cần...
-        return ResponseEntity.badRequest().body("Login type không hỗ trợ");
+
+        // Tìm user trong DB
+        User user = null;
+        if ("facebook".equalsIgnoreCase(loginType) && facebookId != null && !facebookId.isEmpty()) {
+            user = this.userService.findByFacebookId(facebookId);
+        } else if ("google".equalsIgnoreCase(loginType) && googleId != null && !googleId.isEmpty()) {
+            user = this.userService.findByGoogleId(googleId);
+        }
+
+        // Nếu chưa có thì tạo mới user
+        if (user == null) {
+            UserDTO userDTO = UserDTO.builder()
+                    .fullName(name != null ? name : "")
+                    .phoneNumber("") // Social không trả về
+                    .email(email  != null ? email : "")
+                    .address("")
+                    .password("") // không dùng password cho social login
+                    .retypePassword("")
+                    .dateOfBirth(null)
+                    .facebookAccountId(facebookId != null ? facebookId : "")
+                    .googleAccountId(googleId != null ? googleId : "")
+                    .roleId(1L) // role mặc định
+                    .build();
+            user = this.userService.createUser(userDTO);
+        }
+
+        // Sinh token
+        String accessToken = jwtTokenUtil.generateAccessToken(user);
+        String refreshToken = jwtTokenUtil.generateRefreshToken(user);
+        userService.updateRefreshTokenUser(user, refreshToken);
+
+        ResLogin resLogin = ResLogin.builder()
+                .message("Đăng nhập thành công với " + loginType)
+                .token(accessToken)
+                .build();
+
+        ResponseCookie springCookie = ResponseCookie.from("refresh_token", refreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(refreshTokenExpiration)
+                .build();
+
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.SET_COOKIE, springCookie.toString())
+                .body(resLogin);
     }
+
 }

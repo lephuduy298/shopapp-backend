@@ -32,6 +32,10 @@ public interface IUserService {
 
     User findByEmail(String email);
 
+    User findByFacebookId(String facebookId);
+
+    User findByGoogleId(String googleId);
+
 //    User createUserFromSocial(User user);
 
 //    User getUserByCommentId(Long commentId);

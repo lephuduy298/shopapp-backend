@@ -38,12 +38,14 @@ public class JwtTokenUtil {
         Map<String, Object> claims = new HashMap<>();
         claims.put("phoneNumber", userLogin.getPhoneNumber());
         claims.put("email", userLogin.getEmail());
-        claims.put("userId", userLogin.getId());
+        claims.put("facebookAccountId", userLogin.getFacebookAccountId());
+        claims.put("googleAccountId", userLogin.getGoogleAccountId());
+//        claims.put("userId", userLogin.getId());
 
         try {
             String token = Jwts.builder()
                     .setClaims(claims)
-                    .setSubject(!userLogin.getPhoneNumber().isBlank() ? userLogin.getPhoneNumber() : userLogin.getEmail())
+                    .setSubject(String.valueOf(userLogin.getId()))
                     .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiration * 1000L))
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                     .compact();
@@ -59,12 +61,14 @@ public class JwtTokenUtil {
 //        List<String> listAuthority = new ArrayList<>();
         Map<String, Object> claims = new HashMap<>();
         claims.put("phoneNumber", userLogin.getPhoneNumber());
-        claims.put("userId", userLogin.getId());
+        claims.put("email", userLogin.getEmail());
+        claims.put("facebookAccountId", userLogin.getFacebookAccountId());
+        claims.put("googleAccountId", userLogin.getGoogleAccountId());
 
         try {
             String token = Jwts.builder()
                     .setClaims(claims)
-                    .setSubject(userLogin.getPhoneNumber())
+                    .setSubject(String.valueOf(userLogin.getId()))
                     .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpiration * 1000L))
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                     .compact();
@@ -97,18 +101,23 @@ public class JwtTokenUtil {
         return expirationDate.before(new Date());
     }
 
-    public String extractPhoneNumber(String token){
+    public String extractSubject(String token){
         return this.extractClaim(token, Claims::getSubject);
+    }
+
+    public String extractPhoneNumber(String token){
+        return this.extractClaim(token, claims -> claims.get("phoneNumber", String.class));
     }
 
     public String extractEmail(String token){
         return this.extractClaim(token, claims -> claims.get("email", String.class));
     }
 
+    /// ////////////////////////////////////////////
     public boolean isValidToken(String token, UserDetails userDetails){
-        String phoneNumber = this.extractPhoneNumber(token);
+        String subject = this.extractSubject(token);
 
-        return (phoneNumber.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        return (subject.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
 
     public Claims checkValidRefreshToken(String refreshToken) {

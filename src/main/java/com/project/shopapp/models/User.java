@@ -79,8 +79,12 @@ public class User extends BaseEntity implements UserDetails {
 
     @Override
     public String getUsername() {
-        // Ưu tiên phoneNumber, nếu không có thì trả về email
-        return (phoneNumber != null && !phoneNumber.isEmpty()) ? phoneNumber : email;
+        if (id != null) {
+            return String.valueOf(id);
+        } else if (phoneNumber != null && !phoneNumber.isEmpty()) {
+            return phoneNumber;
+        }
+        throw new UsernameNotFoundException("User không có id hoặc phoneNumber hợp lệ");
     }
 
     @Override

@@ -60,8 +60,10 @@ public class UserService implements IUserService {
     @Override
     public User createUser(UserDTO userDTO) throws PermissionDenyException {
         // Nếu là đăng nhập social (Google/Facebook) thì bỏ qua kiểm tra trùng phoneNumber nếu phoneNumber rỗng
-        boolean isSocial = (userDTO.getGoogleAccountId() != null && !userDTO.getGoogleAccountId().isBlank()) ||
-                           (userDTO.getFacebookAccountId() != null && !userDTO.getFacebookAccountId().isBlank());
+        boolean isSocial =
+                (userDTO.getGoogleAccountId() != null && !userDTO.getGoogleAccountId().isBlank() && !"0".equals(userDTO.getGoogleAccountId())) ||
+                        (userDTO.getFacebookAccountId() != null && !userDTO.getFacebookAccountId().isBlank() && !"0".equals(userDTO.getFacebookAccountId()));
+
         if(!isSocial && this.userRepository.existsByPhoneNumber(userDTO.getPhoneNumber())){
             throw new RuntimeException(localizationUtils.getLocalizedMessage(MessageKeys.PHONE_ALREADY_EXISTED, userDTO.getPhoneNumber()));
         }
@@ -147,19 +149,21 @@ public class UserService implements IUserService {
 
         Claims claims = this.jwtTokenUtil.extractAllClaims(extractedToken);
 
-        String phoneNumber = claims.getSubject();
-        String email = claims.get("email", String.class);
+        String subject = claims.getSubject(); // chính là userId trong JWT
 
-        // Nếu phoneNumber là email (chứa '@'), thì tìm theo email
-        if (phoneNumber != null && phoneNumber.contains("@")) {
-            return this.userRepository.findByEmail(phoneNumber);
-        } else if (phoneNumber != null && !phoneNumber.isEmpty()) {
-            return this.userRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new DataNotFoundException("User not found"));
-        } else if (email != null && !email.isEmpty()) {
-            return this.userRepository.findByEmail(email);
-        } else {
+        if (subject == null || subject.isEmpty()) {
             throw new Exception("Invalid token: missing subject");
         }
+
+        Long userId;
+        try {
+            userId = Long.valueOf(subject);
+        } catch (NumberFormatException e) {
+            throw new Exception("Invalid token: subject is not a valid user id");
+        }
+
+        return this.userRepository.findById(userId)
+                .orElseThrow(() -> new DataNotFoundException("User not found with id = " + userId));
 
 //       return this.userRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new DataNotFoundException("User not found"));
 
@@ -174,7 +178,7 @@ public class UserService implements IUserService {
         // Check if the phone number is being changed and if it already exists for another user
         String newPhoneNumber = updatedUserDTO.getPhoneNumber();
         if (!existingUser.getPhoneNumber().equals(newPhoneNumber) &&
-                userRepository.existsByPhoneNumber(newPhoneNumber)) {
+                userRepository.existsByPhoneNumber(newPhoneNumber) && newPhoneNumber != null && !newPhoneNumber.isEmpty()) {
             throw new DataNotFoundException("Phone number already exists");
         }
 
@@ -182,7 +186,7 @@ public class UserService implements IUserService {
         if (updatedUserDTO.getFullName() != null) {
             existingUser.setFullName(updatedUserDTO.getFullName());
         }
-        if (newPhoneNumber != null) {
+        if (newPhoneNumber != null && !newPhoneNumber.isEmpty()) {
             existingUser.setPhoneNumber(newPhoneNumber);
         }
         if (updatedUserDTO.getAddress() != null) {
@@ -236,8 +240,8 @@ public class UserService implements IUserService {
         }
     }
 
-    public User getUserByRefreshTokenAndPhoneNumber(String refreshToken, String subject) {
-        return this.userRepository.findByRefreshTokenAndPhoneNumber(refreshToken, subject);
+    public User getUserByRefreshTokenAndId(String refreshToken, Long subject) {
+        return this.userRepository.findByRefreshTokenAndId(refreshToken, subject);
     }
 
     @Override
@@ -288,6 +292,16 @@ public class UserService implements IUserService {
     @Override
     public User findByEmail(String email) {
         return this.userRepository.findByEmail(email);
+    }
+
+    @Override
+    public User findByFacebookId(String facebookId) {
+        return this.userRepository.findByFacebookAccountId(facebookId);
+    }
+
+    @Override
+    public User findByGoogleId(String googleId) {
+        return this.userRepository.findByGoogleAccountId(googleId);
     }
 
 

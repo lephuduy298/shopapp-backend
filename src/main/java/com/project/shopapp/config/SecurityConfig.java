@@ -15,6 +15,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Optional;
+
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -22,16 +24,21 @@ public class SecurityConfig {
     private final UserRepository userRepository;
 
     @Bean
-    public UserDetailsService userDetailsService(){
+    public UserDetailsService userDetailsService() {
         return identifier -> {
-            // Kiểm tra nếu là email
-            if(identifier != null && identifier.contains("@")) {
-                return this.userRepository.findByEmail(identifier);
-            } else {
-                return this.userRepository.findByPhoneNumber(identifier)
-                        .orElseThrow(() -> new UsernameNotFoundException("Can't found user with phone number = " + identifier));
-            }
+            return userRepository.findByPhoneNumber(identifier)
+                    .or(() -> {
+                        try {
+                            Long userId = Long.parseLong(identifier);
+                            return userRepository.findById(userId);
+                        } catch (NumberFormatException e) {
+                            return Optional.empty();
+                        }
+                    })
+                    .orElseThrow(() ->
+                            new UsernameNotFoundException("User not found with identifier = " + identifier));
         };
+
     }
 
     @Bean

@@ -48,15 +48,15 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             }
 
             final String token = authHeader.substring(7);
-            String phoneNumber;
-            if(this.jwtTokenUtil.extractPhoneNumber(token) != null){
-                phoneNumber = this.jwtTokenUtil.extractPhoneNumber(token);
-            }
-            else {
-                phoneNumber = this.jwtTokenUtil.extractEmail(token);
-            }
-            if(phoneNumber != null && SecurityContextHolder.getContext().getAuthentication() == null){
-                User userDetails = (User) this.userDetailsService.loadUserByUsername(phoneNumber);
+            String subject = jwtTokenUtil.extractSubject(token);
+//            if(this.jwtTokenUtil.extractPhoneNumber(token) != null){
+//                phoneNumber = this.jwtTokenUtil.extractPhoneNumber(token);
+//            }
+//            else {
+//                phoneNumber = this.jwtTokenUtil.extractEmail(token);
+//            }
+            if(subject != null && SecurityContextHolder.getContext().getAuthentication() == null){
+                User userDetails = (User) this.userDetailsService.loadUserByUsername(subject);
                 if(jwtTokenUtil.isValidToken(token, userDetails)){
                     UsernamePasswordAuthenticationToken authenticationToken =
                             new UsernamePasswordAuthenticationToken(
