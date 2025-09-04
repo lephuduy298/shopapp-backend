@@ -37,7 +37,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
             if(isByPassToken(request)){
-                filterChain.doFilter(request, response);
+                        filterChain.doFilter(request, response);
                 return;
             }
 
@@ -84,7 +84,9 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/roles", apiPrefix), "GET"),
                 Pair.of(String.format("%s/users/refresh", apiPrefix), "GET"),
                 Pair.of(String.format("%s/comments", apiPrefix), "GET"),
-                Pair.of(String.format("%s/users/auth", apiPrefix), "GET")
+                Pair.of(String.format("%s/users/auth", apiPrefix), "GET"),
+                Pair.of(String.format("%s/users/auth", apiPrefix), "POST"),
+                Pair.of(String.format("%s/payments/callback", apiPrefix), "GET")
                 );
 
         String requestPath = request.getServletPath();

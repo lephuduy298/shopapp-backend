@@ -236,7 +236,6 @@ public class UserService implements IUserService {
         if(currentUser != null){
             currentUser.setRefreshToken(refreshToken);
             this.userRepository.save(currentUser);
-
         }
     }
 

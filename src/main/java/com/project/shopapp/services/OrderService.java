@@ -140,4 +140,13 @@ public class OrderService implements IOrderService {
     public Page<Order> getOrderByUserId(@Valid Long userId, PageRequest pageRequest) {
         return this.orderRepository.findAllByUserId(userId, pageRequest);
     }
+
+    @Override
+    public void updateOrderStatus(Long orderId, String processing) throws PostException {
+        Order order = this.getOrderById(orderId);
+
+        order.setStatus(processing);
+
+        this.orderRepository.save(order);
+    }
 }

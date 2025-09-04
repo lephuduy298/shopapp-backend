@@ -24,4 +24,6 @@ public interface IOrderService {
     void deleteOrderById(long id) throws PostException;
 
     Page<Order> getOrderByUserId(@Valid Long userId, PageRequest pageRequest);
+
+    void updateOrderStatus(Long orderId, String processing) throws PostException;
 }

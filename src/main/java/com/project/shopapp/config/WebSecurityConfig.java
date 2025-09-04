@@ -135,6 +135,12 @@ public class WebSecurityConfig {
                         .requestMatchers(GET,
                                 String.format("%s/comments/**", apiPrefix)).permitAll()
 
+                        .requestMatchers(POST,
+                                String.format("%s/payments/**", apiPrefix)).permitAll()
+
+                        .requestMatchers(GET,
+                                String.format("%s/payments/**", apiPrefix)).permitAll()
+
                         .anyRequest().authenticated()
                 );
         return http.build();

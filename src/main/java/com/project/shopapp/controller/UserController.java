@@ -2,6 +2,7 @@ package com.project.shopapp.controller;
 
 import com.project.shopapp.components.JwtTokenUtil;
 import com.project.shopapp.components.LocalizationUtils;
+import com.project.shopapp.dto.SocialLoginDTO;
 import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.dto.UserLoginDTO;
@@ -284,12 +285,15 @@ public class UserController {
         return ResponseEntity.ok(url);
     }
 
-    @GetMapping("/auth/social/callback")
+    @PostMapping("/auth/social/callback")
     public ResponseEntity<?> callback(
-            @RequestParam("code") String code,
-            @RequestParam("login_type") String loginType,
+            @RequestBody SocialLoginDTO socialLoginDTO,
             HttpServletRequest request
     ) throws IOException, PermissionDenyException {
+
+        String code = socialLoginDTO.getCode();
+        String loginType = socialLoginDTO.getLoginType();
+
         Map<String, Object> userInfo = this.authService.authenticateAndFetchProfile(code, loginType);
 
         String email = null;
@@ -351,7 +355,8 @@ public class UserController {
 
         ResponseCookie springCookie = ResponseCookie.from("refresh_token", refreshToken)
                 .httpOnly(true)
-                .secure(true)
+                .secure(false) // ✅ chỉ bật true khi deploy HTTPS
+                .sameSite("Lax") // ✅ cho phép cross-site
                 .path("/")
                 .maxAge(refreshTokenExpiration)
                 .build();
